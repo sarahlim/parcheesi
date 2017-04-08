@@ -27,6 +27,10 @@ impl Pawn {
     }
 }
 
+#[derive(Debug, Clone)]
+/// Represents a board
+pub struct Board {}
+
 #[derive(Debug, Clone, PartialEq)]
 /// Represents a move selected by the player.
 pub enum Move {
@@ -55,14 +59,37 @@ fn roll_dice() -> Dice {
     Dice(d1, d2)
 }
 
-// #[derive(Debug, Clone)]
 /// Generic Player trait provides an interface for the
 /// server to interact with players.
-// trait Player {
-//     fn start_game(&self, color: Color) -> ();
-//     fn do_more(&self, board: Board, dice: Dice) -> Move;
-//     fn doubles_penalty(&self) -> ();
-// }
+trait Player {
+    fn start_game(&self, color: Color) -> ();
+    fn do_more(&self, board: Board, dice: Dice) -> Move;
+    fn doubles_penalty(&self) -> ();
+}
+
+/// Represents a game instance with connected players
+pub struct Game<'a> {
+    players: Vec<&'a Player>,    // Players won't outlive game
+}
+
+impl<'a> Game<'a> {
+    fn new() -> Game<'a> {
+        Game {
+            players: Vec::new(),
+        }
+    }
+
+    fn register_player(&mut self, p: &'a Player) -> () {
+        self.players.push(p);
+        println!("Added player to the game. Now there are {} players.", self.players.len());
+    }
+
+    fn start_game() -> () {
+        println!("not yet implemented");
+    }
+        
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
