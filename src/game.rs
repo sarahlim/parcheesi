@@ -3,7 +3,6 @@ extern crate rand;
 use self::rand::Rng;
 use std::collections::BTreeMap;
 
-
 /// THESE ARE BOARD OFFSETS FOR EACH PLAYER.
 static RED_ENTRANCE: usize = 0;
 static BLUE_ENTRANCE: usize = 17;
@@ -25,7 +24,7 @@ pub enum Location {
     Home,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 /// Represents a color of a Pawn or Player.
 pub enum Color {
     Red,
@@ -94,25 +93,45 @@ pub fn roll_dice() -> Dice {
 trait Player {
     fn start_game(&self, color: Color) -> ();
 
-    fn do_more(&self, board: Board, dice: Dice) -> Move;
+    fn do_move(&self, board: Board, dice: Dice) -> Move;
 
     fn doubles_penalty(&self) -> ();
 }
 
 /// Represents a game instance with connected Players.
 pub struct Game<'a> {
-    players: Vec<&'a Player>, // Players won't outlive game
+    pub players: BTreeMap<Color, &'a Player>, // Players won't outlive game
+    all_colors: [Color; 4],
 }
 
 impl<'a> Game<'a> {
     fn new() -> Game<'a> {
-        Game { players: Vec::new() }
+        Game {
+            players: BTreeMap::new(),
+            all_colors: [Color::Red, Color::Blue, Color::Yellow, Color::Green],
+        }
     }
 
-    fn register_player(&mut self, p: &'a Player) -> () {
-        self.players.push(p);
-        println!("Added player to the game. Now there are {} players.",
-                 self.players.len());
+    /// Register a new player with the game.
+    /// If there are no remaining colors available, return an error.
+    fn register_player<T: Player + 'a>(&mut self, p: &'a T) -> () {
+        let num_players_before = self.players.len();
+
+        if self.players.len() <= self.all_colors.len() {
+            // Assign a color to the new player.
+            for color in self.all_colors.iter() {
+                if !self.players
+                        .contains_key(color) {
+                    self.players
+                        .insert(color.clone(), p);
+                }
+            }
+            assert!(self.players.len() > num_players_before);
+            println!("Added player to the game. Now there are {} players.",
+                     self.players.len());
+        } else {
+            println!("Game is full :( Unable to add player. Sad!");
+        }
     }
 
     fn start_game() -> () {
@@ -120,6 +139,24 @@ impl<'a> Game<'a> {
     }
 }
 
+/// Test player.
+// struct TestPlayer {
+//     id: i32,
+// }
+
+// impl Player for TestPlayer {
+//     fn start_game(&self, color: Color) -> () {
+//         println!("Player {} is color: {:?}", self.id, color);
+//     }
+
+//     fn do_move(&self, board: Board, dice: Dice) -> Move {
+//         Move::EnterPiece { pawn: Pawn::new(0, Color::Red) }
+//     }
+
+//     fn doubles_penalty(&self) -> () {
+//         println!("Player {} suffered a doubles penalty", self.id);
+//     }
+// }
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,4 +193,52 @@ mod tests {
 
         assert_eq!(max_index, 7);
     }
+
+    // #[test]
+    // /// Test functionality to add new players. Players should
+    // /// all be assigned different colors, and no more than 4
+    // /// should be allowed to register.
+    // fn test_register_player() {
+    //     let mut game = Game::new();
+    //     let p1 = TestPlayer { id: 0 };
+    //     let p2 = TestPlayer { id: 1 };
+    //     let p3 = TestPlayer { id: 2 };
+    //     let p4 = TestPlayer { id: 3 };
+    //     let p5 = TestPlayer { id: 3 };
+
+    //     let players = [p1, p2, p3, p4];
+    //     let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+
+    //     game.register_player(p1);
+    //     assert!(game.players
+    //                 .contains_key(&colors[0]));
+    //     game.register_player(p2);
+    //     assert!(game.players
+    //                 .contains_key(&colors[1]));
+    //     game.register_player(p3);
+    //     assert!(game.players
+    //                 .contains_key(&colors[2]));
+    //     game.register_player(p4);
+    //     assert!(game.players
+    //                 .contains_key(&colors[3]));
+
+    // for i in 0..4 {
+    //     let p = &players[i];
+    //     game.register_player(&players[i]);
+    //     assert!(game.players
+    //                 .contains_key(&colors[i]));
+    // }
+
+    // // Inserting the fifth player should result
+    // // in no change to the game state.
+    // let num_players = game.players.len();
+    // game.register_player(p5);
+    // assert_eq!(game.players.len(), num_players);
+
+    // // All colors were used.
+    // for clr in colors.iter() {
+    //     assert!(game.players
+    //                 .contains_key(clr));
+    // }
+    // }
 }
