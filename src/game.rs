@@ -1,6 +1,29 @@
 extern crate rand;
 
 use self::rand::Rng;
+use std::collections::BTreeMap;
+
+
+/// THESE ARE BOARD OFFSETS FOR EACH PLAYER.
+static RED_ENTRANCE: usize = 0;
+static BLUE_ENTRANCE: usize = 17;
+static YELLOW_ENTRANCE: usize = 34;
+static GREEN_ENTRANCE: usize = 51;
+
+static SAFETY_OFFSET: &'static [usize] = &[7, 12];
+
+static RED_HOME_ROW: usize = 68;
+static BLUE_HOME_ROW: usize = 75;
+static YELLOW_HOME_ROW: usize = 82;
+static GREEN_HOME_ROW: usize = 89;
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+/// Represents the location of a pawn.
+pub enum Location {
+    Spot { index: usize },
+    Nest,
+    Home,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 /// Represents a color of a Pawn or Player.
@@ -32,7 +55,11 @@ impl Pawn {
 #[derive(Debug, Clone)]
 /// Represents a board state, containing the positions
 /// of all pawns.
-pub struct Board {}
+/// Positions is a map from a color, C, to a four element array, where
+/// each index, i, is the location of the ith pawn with color C.
+pub struct Board {
+    positions: BTreeMap<Color, [Location; 4]>,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 /// Represents a move selected by a player.
@@ -52,10 +79,10 @@ pub enum Move {
 
 #[derive(Debug, Clone)]
 /// Holds the result of two die rolls.
-struct Dice(usize, usize);
+pub struct Dice(usize, usize);
 
 /// Simulates the result of rolling two dice.
-fn roll_dice() -> Dice {
+pub fn roll_dice() -> Dice {
     let d1 = rand::thread_rng().gen_range(1, 7);
     let d2 = rand::thread_rng().gen_range(1, 7);
 
