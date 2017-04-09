@@ -3,7 +3,7 @@ extern crate rand;
 use self::rand::Rng;
 
 #[derive(Debug, Clone, PartialEq)]
-/// Represents a color of a piece or player.
+/// Represents a color of a Pawn or Player.
 pub enum Color {
     Red,
     Green,
@@ -20,6 +20,8 @@ pub struct Pawn {
 
 impl Pawn {
     pub fn new(id: usize, color: Color) -> Pawn {
+        assert!(0 <= id && id <= 3);
+
         Pawn {
             id: id,
             color: color,
@@ -28,11 +30,12 @@ impl Pawn {
 }
 
 #[derive(Debug, Clone)]
-/// Represents a board
+/// Represents a board state, containing the positions
+/// of all pawns.
 pub struct Board {}
 
 #[derive(Debug, Clone, PartialEq)]
-/// Represents a move selected by the player.
+/// Represents a move selected by a player.
 pub enum Move {
     MoveMain {
         pawn: Pawn,
@@ -63,31 +66,31 @@ fn roll_dice() -> Dice {
 /// server to interact with players.
 trait Player {
     fn start_game(&self, color: Color) -> ();
+
     fn do_more(&self, board: Board, dice: Dice) -> Move;
+
     fn doubles_penalty(&self) -> ();
 }
 
-/// Represents a game instance with connected players
+/// Represents a game instance with connected Players.
 pub struct Game<'a> {
-    players: Vec<&'a Player>,    // Players won't outlive game
+    players: Vec<&'a Player>, // Players won't outlive game
 }
 
 impl<'a> Game<'a> {
     fn new() -> Game<'a> {
-        Game {
-            players: Vec::new(),
-        }
+        Game { players: Vec::new() }
     }
 
     fn register_player(&mut self, p: &'a Player) -> () {
         self.players.push(p);
-        println!("Added player to the game. Now there are {} players.", self.players.len());
+        println!("Added player to the game. Now there are {} players.",
+                 self.players.len());
     }
 
     fn start_game() -> () {
         println!("not yet implemented");
     }
-        
 }
 
 #[cfg(test)]
@@ -95,17 +98,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn check_pawn_colors() {
+    /// Pawn color comparison should work as intended.
+    fn test_pawn_colors() {
         let y1 = Pawn::new(1, Color::Yellow);
         let r1 = Pawn::new(1, Color::Red);
         let r2 = Pawn::new(2, Color::Red);
+
         assert_ne!(y1.color, r2.color);
         assert_eq!(r1.color, r2.color);
     }
 
     #[test]
-    /// Make sure dice are fair.
-    fn check_dice() {
+    /// Make sure dice are fair, i.e. the sum of two die rolls
+    /// is most frequently 7.
+    fn test_dice() {
         let mut freq = [0; 13]; // 2...12 are the outcomes
         let iters = 10000;
 
@@ -115,13 +121,11 @@ mod tests {
             freq[sum] += 1;
         }
 
-        let mut max_index = 0;
-
-        for (j, &value) in freq.iter().enumerate() {
-            if value > freq[max_index] {
-                max_index = j;
-            }
-        }
+        let max_index = freq.iter()
+            .enumerate()
+            .max_by_key(|&(_, x)| x)
+            .unwrap()
+            .0; // Index corresponds to sum
 
         assert_eq!(max_index, 7);
     }
