@@ -60,6 +60,51 @@ pub struct Board {
     positions: BTreeMap<Color, [Location; 4]>,
 }
 
+impl Board {
+    fn is_safety(&self, location: Location) -> bool {
+        if let Location::Spot { index } = location {
+            return match index {
+                       0 | 7 | 12 | 17 | 24 | 29 | 34 | 41 | 46 | 51 | 58 |
+                       63 => true,
+                       _ => false,
+                   };
+        } else {
+            return false;
+        }
+    }
+
+    fn is_home_row(&self, color: Color, location: Location) -> bool {
+        let color_offset = self.get_home_row_entrance(color);
+        let home_row_entrance_index = match color_offset {
+            Location::Spot { index } => index,
+            _ => panic!("PANICK! AT THE DISKO"),
+        };
+        let current_location = match location {
+            Location::Spot { index } => index,
+            _ => panic!(" "),
+        };
+        (current_location < (home_row_entrance_index + 7))
+    }
+    fn get_entrance(&self, color: Color) -> Location {
+        let offset = match color {
+            Color::Red => RED_ENTRANCE,
+            Color::Blue => BLUE_ENTRANCE,
+            Color::Yellow => YELLOW_ENTRANCE,
+            Color::Green => GREEN_ENTRANCE,
+        };
+        Location::Spot { index: offset }
+    }
+    fn get_home_row_entrance(&self, color: Color) -> Location {
+        let offset = match color {
+            Color::Red => RED_HOME_ROW,
+            Color::Blue => BLUE_HOME_ROW,
+            Color::Yellow => YELLOW_HOME_ROW,
+            Color::Green => GREEN_HOME_ROW,
+        };
+        Location::Spot { index: offset }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 /// Represents a move selected by a player.
 pub enum Move {
