@@ -626,24 +626,28 @@ mod tests {
           //             .handle_move(m3));
 
     }
-
+    
     #[test]
+    #[ignore]
     fn double_bonus() {
 
         assert!(false);
     }
 
     #[test]
+    #[ignore]
     fn double_repeats() {
         assert!(false);
     }
 
     #[test]
+    #[ignore]
     fn home_move() {
         assert!(false);
     }
 
     #[test]
+    #[ignore]
     fn home_bonus() {
         assert!(false);
     }
