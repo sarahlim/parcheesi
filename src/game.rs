@@ -250,13 +250,24 @@ impl Board {
                     // If the destination spot has a single pawn of
                     // another color, bop it back to start.
                     let destination = start + distance;
-                    let can_bop = self.can_bop(color, destination); // Change to tuple? so that we have access to pawn that will be bopped?
 
                     if let Some(boppee) = self.can_bop(color, destination) {
-                        //     // Bop it!
+                        // If a bop occurs, we need to handle two side effects:
 
+                        // 1. Move the boppee pawn back to its home.
+                        let boppee_locs = self.positions
+                            .get(&boppee.color);
+                        if let Some(old_locs) = boppee_locs {
+                            let mut next_locs = old_locs.clone();
+                            next_locs[boppee.id] = Loc::Nest; // Monster
+                            positions.insert(boppee.color, next_locs);
+                        }
+
+                        // 2. Make sure we return a BOP_BONUS move for the bopper.
                         bonus = Some(BOP_BONUS);
                     }
+
+                    // Finally, return the location of the move.
                     Loc::Spot { index: start + distance }
                 }
             };
@@ -486,12 +497,10 @@ mod tests {
                        id: 0,
                        color: Color::Green,
                    });
-        // assert!(start_board.can_bop(Color::Red, 3));
 
         // Can't bop own pawn.
         let r_own = start_board.can_bop(Color::Green, 3);
         assert!(r_own.is_none());
-        // assert!(!start_board.can_bop(Color::Green, 3));
 
         // Can't bop if spot is uninhabited.
         let r_empty = start_board.can_bop(Color::Red, 4);
@@ -659,6 +668,12 @@ mod tests {
 
     }
 
+    #[test]
+    #[ignore]
+    fn test_handle_bop() {
+
+        assert!(false);
+    }
     #[test]
     #[ignore]
     fn double_bonus() {
