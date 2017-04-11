@@ -1,8 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
-
 use std::collections::BTreeMap;
-use super::game::{Move, MoveType, Player, Dice};
+use super::game::{Move, MoveType};
 
 /// THESE ARE BOARD OFFSETS FOR EACH PLAYER.
 static RED_ENTRANCE: usize = 0;
@@ -41,7 +40,7 @@ macro_rules! map {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the location of a pawn.
-enum Loc {
+pub enum Loc {
     Spot { index: usize },
     Nest,
     Home,
@@ -94,7 +93,7 @@ pub struct MoveResult(Board, Option<Bonus>);
 type Bonus = usize;
 
 impl Board {
-    fn new() -> Board {
+    pub fn new() -> Board {
         let mut positions = BTreeMap::new();
         let init_pawn_locations = [Loc::Nest; 4];
 
@@ -289,9 +288,6 @@ impl Board {
 mod tests {
     use super::*;
 
-
-
-    #[test]
     /// Pawn color comparison should work as intended.
     fn test_pawn_colors() {
         let y1 = Pawn::new(1, Color::Yellow);
@@ -301,7 +297,6 @@ mod tests {
         assert_ne!(y1.color, r2.color);
         assert_eq!(r1.color, r2.color);
     }
-
 
     #[test]
     /// Bopping is allowed if and only if the bopper

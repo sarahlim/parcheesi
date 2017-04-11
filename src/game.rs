@@ -1,18 +1,26 @@
+#![allow(dead_code, unused_variables)]
+
 extern crate rand;
 
 use self::rand::Rng;
 
 use std::collections::BTreeMap;
-use super::board::{Color, ALL_COLORS, Board, Pawn};
+use super::board::{Color, ALL_COLORS, Board, Pawn, Loc};
 
 /// Represents a game instance with connected Players.
 struct Game<'a> {
     players: BTreeMap<Color, &'a Player>, // Players won't outlive game
+    current_turn: Option<Color>,
+    board: Board,
 }
 
 impl<'a> Game<'a> {
     fn new() -> Game<'a> {
-        Game { players: BTreeMap::new() }
+        Game {
+            players: BTreeMap::new(),
+            current_turn: None,
+            board: Board::new(),
+        }
     }
 
     /// Register a new player with the game.
@@ -38,8 +46,82 @@ impl<'a> Game<'a> {
     }
 
     /// Start a game with the currently registered players.
-    fn start_game() -> () {
-        println!("not yet implemented");
+    fn start_game(&mut self) -> () {
+        if self.players.iter().len() == 0 {
+            panic!("Can't start a game with zero players");
+        } else {
+            for (clr, p) in self.players.iter() {
+                p.start_game(*clr);
+            }
+
+            println!("Starting game.");
+
+            // Set the first registered player to the current turn.
+            if let Some(clr) = self.players.keys().next() {
+                self.current_turn = Some(*clr);
+            }
+            self.turn();
+        }
+    }
+
+    fn is_game_over(&self) -> bool {
+        let positions = &self.board.positions;
+        // Game is over if one player has all of their pieces in
+        // the Home Spot.
+        for (clr, p) in self.players.iter() {
+            if let Some(pawn_locs) = positions.get(clr) {
+                // Iterate over pawn locations to check if all
+                // are home.
+                for loc in pawn_locs {
+                    if let &Loc::Home = loc {
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+
+                // If we iterated through all of the pawns,
+                // the player has won.
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn turn(&mut self) -> () {
+        if self.is_game_over() {
+            println!("Game over.");
+        }
+
+        let mut consecutive_turns = 0;
+        let dice = roll_dice();
+        let mut rolls: Vec<usize> = vec![dice.d1, dice.d2];
+
+        // Check for doubles.
+        if is_doubles(&dice) {
+            // Check if the player has taken three consecutive doubles turns.
+            if consecutive_turns >= 3 {
+                // Player forfeits turn, and their furthest pawn moves
+                // back to the nest.
+
+            }
+
+            // Check if all the player's pawns are on the board.
+            // If so, begin a Movement of distance M, and the other
+            // two pawns begin a Movement of distance (7 - M).
+            // When dividing the pawns into pairs, a pair may not be a blockade
+            // (starting on the same spot).
+            // The list of mini-moves is empty afterwards.
+
+            // If the player does not have all their pawns on the board,
+            // the turn proceeds as normal.
+
+            // Award the player another turn, and keep track of the number of turns.
+            consecutive_turns += 1;
+        } else {
+        }
+        // TODO: Implement this.
     }
 }
 
@@ -49,6 +131,10 @@ fn roll_dice() -> Dice {
     let d2 = rand::thread_rng().gen_range(1, 7);
 
     Dice(d1, d2)
+}
+
+fn is_doubles(dice: &Dice) -> bool {
+    dice.d1 == dice.d2
 }
 
 /// Generic Player trait provides an interface for the
