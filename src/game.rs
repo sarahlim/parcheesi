@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+
 extern crate rand;
 
 use self::rand::Rng;
@@ -16,33 +18,36 @@ static BLUE_HOME_ROW: usize = 75;
 static YELLOW_HOME_ROW: usize = 82;
 static GREEN_HOME_ROW: usize = 89;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+static ALL_COLORS: [Color; 4] =
+    [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the location of a pawn.
-pub enum Location {
+enum Location {
     Spot { index: usize },
     Nest,
     Home,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 /// Represents a color of a Pawn or Player.
-pub enum Color {
+enum Color {
     Red,
     Green,
     Blue,
     Yellow,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// Represents a pawn on the board.
-pub struct Pawn {
+struct Pawn {
     id: usize, // 0..3
     color: Color,
 }
 
 impl Pawn {
-    pub fn new(id: usize, color: Color) -> Pawn {
-        assert!(0 <= id && id <= 3);
+    fn new(id: usize, color: Color) -> Pawn {
+        assert!(id <= 3);
 
         Pawn {
             id: id,
@@ -51,25 +56,29 @@ impl Pawn {
     }
 }
 
-#[derive(Debug, Clone)]
+type PawnLocations = [Location; 4];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents a board state, containing the positions
 /// of all pawns.
 /// Positions is a map from a color, C, to a four element array, where
 /// each index, i, is the location of the ith pawn with color C.
-pub struct Board {
-    positions: BTreeMap<Color, [Location; 4]>,
+struct Board {
+    positions: BTreeMap<Color, PawnLocations>,
 }
 
 impl Board {
     fn is_safety(&self, location: Location) -> bool {
-        if let Location::Spot { index } = location {
-            return match index {
-                       0 | 7 | 12 | 17 | 24 | 29 | 34 | 41 | 46 | 51 | 58 |
-                       63 => true,
-                       _ => false,
-                   };
-        } else {
-            return false;
+        match location {
+            Location::Spot { index } => {
+                match index {
+                    0 | 7 | 12 | 17 | 24 | 29 | 34 | 41 | 46 | 51 | 58 | 63 => {
+                        true
+                    }
+                    _ => false,
+                }
+            }
+            _ => false,
         }
     }
 
@@ -77,14 +86,17 @@ impl Board {
         let color_offset = self.get_home_row_entrance(color);
         let home_row_entrance_index = match color_offset {
             Location::Spot { index } => index,
-            _ => panic!("PANICK! AT THE DISKO"),
+            _ => panic!("at the disco"),
         };
+
         let current_location = match location {
             Location::Spot { index } => index,
             _ => panic!(" "),
         };
-        (current_location < (home_row_entrance_index + 7))
+
+        current_location < home_row_entrance_index + 7
     }
+
     fn get_entrance(&self, color: Color) -> Location {
         let offset = match color {
             Color::Red => RED_ENTRANCE,
@@ -92,8 +104,10 @@ impl Board {
             Color::Yellow => YELLOW_ENTRANCE,
             Color::Green => GREEN_ENTRANCE,
         };
+
         Location::Spot { index: offset }
     }
+
     fn get_home_row_entrance(&self, color: Color) -> Location {
         let offset = match color {
             Color::Red => RED_HOME_ROW,
@@ -101,32 +115,41 @@ impl Board {
             Color::Yellow => YELLOW_HOME_ROW,
             Color::Green => GREEN_HOME_ROW,
         };
+
         Location::Spot { index: offset }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 /// Represents a move selected by a player.
-pub enum Move {
+enum Move {
+    /// Represents a move that starts on the main ring
+    /// (but does not have to end up there).
     MoveMain {
         pawn: Pawn,
         start: usize,
         distance: usize,
     },
+
+    /// Represents a move that starts on one of the
+    /// home rows.
     MoveHome {
         pawn: Pawn,
         start: usize,
         distance: usize,
     },
+
+    /// Represents a move where a player enters
+    /// a piece.
     EnterPiece { pawn: Pawn },
 }
 
 #[derive(Debug, Clone)]
 /// Holds the result of two die rolls.
-pub struct Dice(usize, usize);
+struct Dice(usize, usize);
 
 /// Simulates the result of rolling two dice.
-pub fn roll_dice() -> Dice {
+fn roll_dice() -> Dice {
     let d1 = rand::thread_rng().gen_range(1, 7);
     let d2 = rand::thread_rng().gen_range(1, 7);
 
@@ -136,25 +159,26 @@ pub fn roll_dice() -> Dice {
 /// Generic Player trait provides an interface for the
 /// server to interact with players.
 trait Player {
+    /// Inform the Player that a game has started, and
+    /// what color the player is.
     fn start_game(&self, color: Color) -> ();
 
+    /// Ask the player what move they want to make.
     fn do_move(&self, board: Board, dice: Dice) -> Move;
 
+    /// Inform the player that they have suffered a doubles
+    /// penalty.
     fn doubles_penalty(&self) -> ();
 }
 
 /// Represents a game instance with connected Players.
-pub struct Game<'a> {
-    pub players: BTreeMap<Color, &'a Player>, // Players won't outlive game
-    all_colors: [Color; 4],
+struct Game<'a> {
+    players: BTreeMap<Color, &'a Player>, // Players won't outlive game
 }
 
 impl<'a> Game<'a> {
     fn new() -> Game<'a> {
-        Game {
-            players: BTreeMap::new(),
-            all_colors: [Color::Red, Color::Blue, Color::Yellow, Color::Green],
-        }
+        Game { players: BTreeMap::new() }
     }
 
     /// Register a new player with the game.
@@ -162,16 +186,16 @@ impl<'a> Game<'a> {
     fn register_player<T: Player + 'a>(&mut self, p: &'a T) -> () {
         let num_players_before = self.players.len();
 
-        if self.players.len() <= self.all_colors.len() {
+        if self.players.len() <= ALL_COLORS.len() {
             // Assign a color to the new player.
-            for color in self.all_colors.iter() {
+            for color in ALL_COLORS.iter() {
                 if !self.players
                         .contains_key(color) {
                     self.players
                         .insert(color.clone(), p);
                 }
             }
-            assert!(self.players.len() > num_players_before);
+            assert!(self.players.len() >= num_players_before);
             println!("Added player to the game. Now there are {} players.",
                      self.players.len());
         } else {
@@ -179,29 +203,31 @@ impl<'a> Game<'a> {
         }
     }
 
+    /// Start a game with the currently registered players.
     fn start_game() -> () {
         println!("not yet implemented");
     }
 }
 
 /// Test player.
-// struct TestPlayer {
-//     id: i32,
-// }
+struct TestPlayer {
+    id: i32,
+}
 
-// impl Player for TestPlayer {
-//     fn start_game(&self, color: Color) -> () {
-//         println!("Player {} is color: {:?}", self.id, color);
-//     }
+impl Player for TestPlayer {
+    fn start_game(&self, color: Color) -> () {
+        println!("Player {} is color: {:?}", self.id, color);
+    }
 
-//     fn do_move(&self, board: Board, dice: Dice) -> Move {
-//         Move::EnterPiece { pawn: Pawn::new(0, Color::Red) }
-//     }
+    fn do_move(&self, board: Board, dice: Dice) -> Move {
+        Move::EnterPiece { pawn: Pawn::new(0, Color::Red) }
+    }
 
-//     fn doubles_penalty(&self) -> () {
-//         println!("Player {} suffered a doubles penalty", self.id);
-//     }
-// }
+    fn doubles_penalty(&self) -> () {
+        println!("Player {} suffered a doubles penalty", self.id);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,51 +265,38 @@ mod tests {
         assert_eq!(max_index, 7);
     }
 
-    // #[test]
-    // /// Test functionality to add new players. Players should
-    // /// all be assigned different colors, and no more than 4
-    // /// should be allowed to register.
-    // fn test_register_player() {
-    //     let mut game = Game::new();
-    //     let p1 = TestPlayer { id: 0 };
-    //     let p2 = TestPlayer { id: 1 };
-    //     let p3 = TestPlayer { id: 2 };
-    //     let p4 = TestPlayer { id: 3 };
-    //     let p5 = TestPlayer { id: 3 };
+    #[test]
+    /// Test functionality to add new players. Players should
+    /// all be assigned different colors, and no more than 4
+    /// should be allowed to register.
+    fn test_register_player() {
+        let p1 = TestPlayer { id: 0 };
+        let p2 = TestPlayer { id: 1 };
+        let p3 = TestPlayer { id: 2 };
+        let p4 = TestPlayer { id: 3 };
+        let p5 = TestPlayer { id: 4 };
+        let mut game = Game::new();
 
-    //     let players = [p1, p2, p3, p4];
-    //     let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+        let players = [&p1, &p2, &p3, &p4];
+        let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
 
-    //     game.register_player(p1);
-    //     assert!(game.players
-    //                 .contains_key(&colors[0]));
-    //     game.register_player(p2);
-    //     assert!(game.players
-    //                 .contains_key(&colors[1]));
-    //     game.register_player(p3);
-    //     assert!(game.players
-    //                 .contains_key(&colors[2]));
-    //     game.register_player(p4);
-    //     assert!(game.players
-    //                 .contains_key(&colors[3]));
+        for i in 0..4 {
+            let p = players[i];
+            game.register_player(players[i]);
+            assert!(game.players
+                        .contains_key(&colors[i]));
+        }
 
-    // for i in 0..4 {
-    //     let p = &players[i];
-    //     game.register_player(&players[i]);
-    //     assert!(game.players
-    //                 .contains_key(&colors[i]));
-    // }
+        // Inserting the fifth player should result
+        // in no change to the game state.
+        let num_players = game.players.len();
+        game.register_player(&p5);
+        assert_eq!(game.players.len(), num_players);
 
-    // // Inserting the fifth player should result
-    // // in no change to the game state.
-    // let num_players = game.players.len();
-    // game.register_player(p5);
-    // assert_eq!(game.players.len(), num_players);
-
-    // // All colors were used.
-    // for clr in colors.iter() {
-    //     assert!(game.players
-    //                 .contains_key(clr));
-    // }
-    // }
+        // All colors were used.
+        for clr in colors.iter() {
+            assert!(game.players
+                        .contains_key(clr));
+        }
+    }
 }
