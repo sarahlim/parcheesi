@@ -90,7 +90,7 @@ struct Board {
     pub positions: BTreeMap<Color, PawnLocs>,
 }
 
-struct MoveResult (Board,Option<Bonus>);
+struct MoveResult(Board, Option<Bonus>);
 
 impl Board {
     fn new() -> Board {
@@ -147,65 +147,77 @@ impl Board {
         }
     }
 
-    fn can_bop(&self, color: Color, dest: usize) -> bool {
+    fn can_bop(&self, bopper_color: Color, dest_index: usize) -> Option<Pawn> {
         // A pawn can bop if all of the following are true:
         // - dest index is not a safety spot,
         // - dest contains one pawn of a different color.
-        let dest_loc = Loc::Spot { index: dest };
-        let bopper_entrance = self.get_entrance(color);
 
-        if self.is_safety(dest_loc) && dest != bopper_entrance {
-            return false;
+        // 1. If dest_index is safety,
+        //    a. bopper's entrance => MIGHT BE ABLE TO BOP, KEEP CHECKING
+        //    b. any other safety => CANNOT BOP
+        let dest_loc = Loc::Spot { index: dest_index };
+        let bopper_entrance = self.get_entrance(bopper_color);
+
+        if self.is_safety(dest_loc) && dest_index != bopper_entrance {
+            return None;
         }
 
-        let is_dest_index = |&l| match l {
-            Loc::Spot { index } => index == dest,
+        // 2. If spot is not a safety, check if it's occupied
+        //    a. Occupied by opponent
+        //       i. Blockade => CANNOT BOP
+        //       ii. Not blockade => CAN BOP
+        //    b. Unoccupied => CANNOT BOP
+        let is_dest_index = |&l: &&Loc| match *l {
+            Loc::Spot { index } => index == dest_index,
             _ => false,
         };
 
-        for (c, pawn_locs) in self.positions.iter() {
-            // For each of the other players, check the locations of
-            // all of their pawns. If there is a single opponent pawn on the
-            // destination spot, then we CAN bop it.
-            // If there are two opponent pawns on the
-            // destination spot, they form a blockade, and we CANNOT bop it.
-            if *c != color {
-                let mut result = false;
+        for (c, locs) in self.positions.iter() {
+            if *c == bopper_color {
+                continue;
+            }
 
-                for l in pawn_locs.iter() {
-                    if is_dest_index(l) {
-                        // Early return true, without checking for possible
-                        // blockades, if the opponent pawn is occupying our
-                        // entrance.
-                        if let &Loc::Spot { index } = l {
-                            if index == bopper_entrance {
-                                return true;
-                            }
-                        }
+            // We're looking at the pawn locations of an opponent.
+            // Iterate over those and check for opponent pawns.
+            let mut occupants = Vec::new();
 
-                        // First hit => change to true.
-                        // Second hit => flips back to false.
-                        result = !result;
-                    }
+            for (i, loc) in locs.iter().enumerate() {
+                if is_dest_index(&loc) {
+                    occupants.push((i, loc));
                 }
-                return result;
+            }
+
+            // Now `occupants` is a vector of the current opponent's
+            // pawns occupying the destination spot.
+            if occupants.len() == 1 {
+                if let Some((id, _)) = occupants.pop() {
+                    // Need to return the boppee.
+                    let boppee = Pawn { id: id, color: *c };
+                    return Some(boppee);
+                };
+            } else if occupants.len() == 2 {
+                // There is a blockade, so we can't bop no matter what.
+                // Immediately return without checking other players' positions.
+                return None;
             }
         }
 
-        false
+        // If we got through all other players' positions and found no
+        // single-occupants, there is nothing to bop.
+        None
     }
 
     /// Takes a move and returns a new board.
-    fn handle_move (&self, m: Move) -> Result<MoveResult,&'static str> {
+    fn handle_move(&self, m: Move) -> Result<MoveResult, &'static str> {
         let mut positions = self.positions.clone();
         let Move {
             pawn: Pawn { color, id },
             m_type,
         } = m;
-        
+
         let mut bonus = None;
-        
-        
+
+
         // The color of the pawn being moved tells us
         // which player's pawn locations we need to modify.
         let player_pawns = self.positions.get(&color);
@@ -214,22 +226,24 @@ impl Board {
             let mut next_pawns = *pawns;
 
             let next_loc = match m_type {
-                MoveType::EnterPiece => Loc::Spot{ index: self.get_entrance(color)},
+                MoveType::EnterPiece => {
+                    Loc::Spot { index: self.get_entrance(color) }
+                }
                 MoveType::MoveHome { start, distance } => {
                     // Pawns may only move home by an exact amount.
                     let home_row_entrance = self.get_home_row_entrance(color);
                     let home_index = home_row_entrance + HOME_ROW_LENGTH;
                     let dest_index = start + distance;
-                    
+
                     if dest_index == home_index {
                         bonus = Some(HOME_BONUS);
-                        Loc::Home                        
+                        Loc::Home
                     } else if dest_index < home_index {
                         // If the destination is short of the Home,
                         // It is just a regular movement in the Home Row.
-                        Loc::Spot { index: start+distance }
+                        Loc::Spot { index: start + distance }
                     } else {
-                       return Err("Can't overshoot home"); 
+                        return Err("Can't overshoot home");
                     }
                 }
                 MoveType::MoveMain { start, distance } => {
@@ -238,12 +252,12 @@ impl Board {
                     let destination = start + distance;
                     let can_bop = self.can_bop(color, destination); // Change to tuple? so that we have access to pawn that will be bopped?
 
-                    if can_bop {
+                    if let Some(boppee) = self.can_bop(color, destination) {
                         //     // Bop it!
-                        
+
                         bonus = Some(BOP_BONUS);
                     }
-                    Loc::Spot { index: start+distance }
+                    Loc::Spot { index: start + distance }
                 }
             };
 
@@ -465,13 +479,23 @@ mod tests {
 
         // Can bop if different colors and only one pawn on
         // destination square.
-        assert!(start_board.can_bop(Color::Red, 3));
+        let r_normal = start_board.can_bop(Color::Red, 3);
+        assert!(r_normal.is_some());
+        assert_eq!(r_normal.unwrap(),
+                   Pawn {
+                       id: 0,
+                       color: Color::Green,
+                   });
+        // assert!(start_board.can_bop(Color::Red, 3));
 
         // Can't bop own pawn.
-        assert!(!start_board.can_bop(Color::Green, 3));
+        let r_own = start_board.can_bop(Color::Green, 3);
+        assert!(r_own.is_none());
+        // assert!(!start_board.can_bop(Color::Green, 3));
 
         // Can't bop if spot is uninhabited.
-        assert!(!start_board.can_bop(Color::Red, 4));
+        let r_empty = start_board.can_bop(Color::Red, 4);
+        assert!(r_empty.is_none());
 
         let mut blockade_board = start_board.clone();
         let mut green_pawn_blockade_locs = green_pawn_locs;
@@ -482,7 +506,8 @@ mod tests {
         blockade_board = Board { positions: blockade_positions };
 
         // Can't bop a blockade.
-        assert!(!blockade_board.can_bop(Color::Red, 3));
+        let r_blockade = blockade_board.can_bop(Color::Red, 3);
+        assert!(r_blockade.is_none());
 
         let mut entrance_board = Board::new();
         let green_pawn_entrance_locs = [Loc::Spot { index: RED_ENTRANCE },
@@ -499,8 +524,13 @@ mod tests {
         // be when entering a new pawn.
         // Any other pawn should already have turned off into the
         // Home Row.
-        //println!("{:#?}", entrance_board);
-        assert!(entrance_board.can_bop(Color::Red, RED_ENTRANCE));
+        let r_entrance = entrance_board.can_bop(Color::Red, RED_ENTRANCE);
+        assert!(r_entrance.is_some());
+        assert_eq!(r_entrance.unwrap(),
+                   Pawn {
+                       id: 0,
+                       color: Color::Green,
+                   });
     }
 
     #[test]
@@ -524,7 +554,7 @@ mod tests {
         expected = Board { positions: positions };
         let result = board.handle_move(m);
         match result {
-            Ok(MoveResult(b,_)) => assert_eq!(expected, b),
+            Ok(MoveResult(b, _)) => assert_eq!(expected, b),
             Err(e) => assert!(false),
         };
 
@@ -582,13 +612,13 @@ mod tests {
                                Loc::Nest]
         },
         };
-        
+
         let r1 = b0.handle_move(m1);
         match r1 {
-            Ok(MoveResult(b,_)) => assert_eq!(b1, b),
+            Ok(MoveResult(b, _)) => assert_eq!(b1, b),
             Err(e) => assert!(false),
-        };   
-        
+        };
+
         //assert_eq!(b1, b0.handle_move(m1));
 
         let m2 = Move {
@@ -599,7 +629,7 @@ mod tests {
             pawn: p.clone(),
         };
 
-        
+
 
         let m3 = Move {
             m_type: MoveType::MoveMain {
@@ -608,25 +638,27 @@ mod tests {
             },
             pawn: p.clone(),
         };
-        
+
         let mut r2 = b1.handle_move(m2);
         match r2 {
-            Ok(MoveResult(b,_)) => {
+            Ok(MoveResult(b, _)) => {
                 r2 = b.handle_move(m3);
                 match r2 {
-                    Ok(MoveResult(final_board,_)) => assert_eq!(final_board,b2),
+                    Ok(MoveResult(final_board, _)) => {
+                        assert_eq!(final_board, b2)
+                    }
                     Err(e) => assert!(false),
                 }
-            },
+            }
             Err(e) => assert!(false),
         };
 
         //assert_eq!(b2,
-         //          b1.handle_move(m2)
-          //             .handle_move(m3));
+        //          b1.handle_move(m2)
+        //             .handle_move(m3));
 
     }
-    
+
     #[test]
     #[ignore]
     fn double_bonus() {
