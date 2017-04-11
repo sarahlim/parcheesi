@@ -12,6 +12,7 @@ static YELLOW_ENTRANCE: usize = 34;
 static GREEN_ENTRANCE: usize = 51;
 
 static SAFETY_OFFSET: &'static [usize] = &[7, 12];
+static HOME_ROW_LENGTH: usize = 7;
 
 static RED_HOME_ROW: usize = 68;
 static BLUE_HOME_ROW: usize = 75;
@@ -64,10 +65,21 @@ type PawnLocations = [Location; 4];
 /// Positions is a map from a color, C, to a four element array, where
 /// each index, i, is the location of the ith pawn with color C.
 struct Board {
-    positions: BTreeMap<Color, PawnLocations>,
+    pub positions: BTreeMap<Color, PawnLocations>,
 }
 
 impl Board {
+    fn new() -> Board {
+        let mut positions = BTreeMap::new();
+        let init_pawn_locations = [Location::Nest; 4];
+
+        for c in ALL_COLORS.iter() {
+            positions.insert(c.clone(), init_pawn_locations.clone());
+        }
+
+        Board { positions: positions }
+    }
+
     fn is_safety(&self, location: Location) -> bool {
         match location {
             Location::Spot { index } => {
@@ -83,65 +95,157 @@ impl Board {
     }
 
     fn is_home_row(&self, color: Color, location: Location) -> bool {
-        let color_offset = self.get_home_row_entrance(color);
-        let home_row_entrance_index = match color_offset {
-            Location::Spot { index } => index,
-            _ => panic!("at the disco"),
-        };
+        let home_row_entrance_index = self.get_home_row_entrance(color);
 
         let current_location = match location {
             Location::Spot { index } => index,
             _ => panic!(" "),
         };
 
-        current_location < home_row_entrance_index + 7
+        current_location < home_row_entrance_index + HOME_ROW_LENGTH
     }
 
-    fn get_entrance(&self, color: Color) -> Location {
-        let offset = match color {
+    fn get_entrance(&self, color: Color) -> usize {
+        match color {
             Color::Red => RED_ENTRANCE,
             Color::Blue => BLUE_ENTRANCE,
             Color::Yellow => YELLOW_ENTRANCE,
             Color::Green => GREEN_ENTRANCE,
-        };
-
-        Location::Spot { index: offset }
+        }
     }
 
-    fn get_home_row_entrance(&self, color: Color) -> Location {
-        let offset = match color {
+    fn get_home_row_entrance(&self, color: Color) -> usize {
+        match color {
             Color::Red => RED_HOME_ROW,
             Color::Blue => BLUE_HOME_ROW,
             Color::Yellow => YELLOW_HOME_ROW,
             Color::Green => GREEN_HOME_ROW,
+        }
+    }
+
+    fn can_bop(&self, color: Color, dest: usize) -> bool {
+        // A pawn can bop if all of the following are true:
+        // - dest index is not a safety spot,
+        // - dest contains one pawn of a different color.
+        let dest_loc = Location::Spot { index: dest };
+        let bopper_entrance = self.get_entrance(color);
+
+        if self.is_safety(dest_loc) && dest != bopper_entrance {
+            return false;
+        }
+
+        let is_dest_index = |&l| match l {
+            Location::Spot { index } => index == dest,
+            _ => false,
         };
 
-        Location::Spot { index: offset }
+        for (c, pawn_locs) in self.positions.iter() {
+            // For each of the other players, check the locations of
+            // all of their pawns. If there is a single opponent pawn on the
+            // destination spot, then we CAN bop it.
+            // If there are two opponent pawns on the
+            // destination spot, they form a blockade, and we CANNOT bop it.
+            if *c != color {
+                let mut result = false;
+
+                for l in pawn_locs.iter() {
+                    if is_dest_index(l) {
+                        // Early return true, without checking for possible
+                        // blockades, if the opponent pawn is occupying our
+                        // entrance.
+                        if let &Location::Spot { index } = l {
+                            if index == bopper_entrance {
+                                return true;
+                            }
+                        }
+
+                        // First hit => change to true.
+                        // Second hit => flips back to false.
+                        result = !result;
+                    }
+                }
+                return result;
+            }
+        }
+
+        false
+    }
+
+    /// Takes a move and returns a new board.
+    fn handle_move(&self, m: Move) -> Board {
+        let mut positions = self.positions.clone();
+        let Move {
+            pawn: Pawn { color, id },
+            m_type,
+        } = m;
+
+        // The color of the pawn being moved tells us
+        // which player's pawn locations we need to modify.
+        let player_pawns = self.positions.get(&color);
+
+        if let Some(pawns) = player_pawns {
+            let mut next_pawns = *pawns;
+
+            let next_loc_index = match m_type {
+                MoveType::EnterPiece => self.get_entrance(color),
+                MoveType::MoveHome { start, distance } => {
+                    // Pawns may only move home by an exact amount.
+                    let home_row_entrance = self.get_home_row_entrance(color);
+                    let home_index = home_row_entrance + HOME_ROW_LENGTH;
+
+                    if start + distance >= home_index {
+                        panic!("Can't overshoot home");
+                    } else {
+                        // Regular move within the home row.
+                        start + distance
+                    }
+                }
+                MoveType::MoveMain { start, distance } => {
+                    // If the destination spot has a single pawn of
+                    // another color, bop it back to start.
+                    let destination = start + distance;
+                    let can_bop = self.can_bop(color, destination);
+
+                    if can_bop {
+                        //     // Bop it!
+                    }
+
+                    start + distance
+                }
+            };
+
+            next_pawns[id] = Location::Spot { index: next_loc_index };
+
+            // Modify the copy of the positions map
+            // with the new positions of the moving player's
+            // pawns.
+            positions.insert(color, next_pawns);
+        }
+
+        Board { positions: positions }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 /// Represents a move selected by a player.
-enum Move {
+enum MoveType {
     /// Represents a move that starts on the main ring
     /// (but does not have to end up there).
-    MoveMain {
-        pawn: Pawn,
-        start: usize,
-        distance: usize,
-    },
+    MoveMain { start: usize, distance: usize },
 
     /// Represents a move that starts on one of the
     /// home rows.
-    MoveHome {
-        pawn: Pawn,
-        start: usize,
-        distance: usize,
-    },
+    MoveHome { start: usize, distance: usize },
 
     /// Represents a move where a player enters
     /// a piece.
-    EnterPiece { pawn: Pawn },
+    EnterPiece,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct Move {
+    m_type: MoveType,
+    pawn: Pawn,
 }
 
 #[derive(Debug, Clone)]
@@ -209,28 +313,32 @@ impl<'a> Game<'a> {
     }
 }
 
-/// Test player.
-struct TestPlayer {
-    id: i32,
-}
-
-impl Player for TestPlayer {
-    fn start_game(&self, color: Color) -> () {
-        println!("Player {} is color: {:?}", self.id, color);
-    }
-
-    fn do_move(&self, board: Board, dice: Dice) -> Move {
-        Move::EnterPiece { pawn: Pawn::new(0, Color::Red) }
-    }
-
-    fn doubles_penalty(&self) -> () {
-        println!("Player {} suffered a doubles penalty", self.id);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Test player.
+    struct TestPlayer {
+        id: i32,
+    }
+
+    impl Player for TestPlayer {
+        fn start_game(&self, color: Color) -> () {
+            println!("Player {} is color: {:?}", self.id, color);
+        }
+
+        fn do_move(&self, board: Board, dice: Dice) -> Move {
+            let p = Pawn::new(0, Color::Red);
+            Move {
+                m_type: MoveType::EnterPiece,
+                pawn: p,
+            }
+        }
+
+        fn doubles_penalty(&self) -> () {
+            println!("Player {} suffered a doubles penalty", self.id);
+        }
+    }
 
     #[test]
     /// Pawn color comparison should work as intended.
@@ -298,5 +406,67 @@ mod tests {
             assert!(game.players
                         .contains_key(clr));
         }
+    }
+
+    #[test]
+    /// Bopping is allowed if and only if the bopper
+    /// and boppee are different colors, and the boppee
+    /// is the only pawn on its spot.
+    fn test_can_bop() {
+        let mut start_board = Board::new();
+        let red_pawn_locs = [Location::Spot { index: RED_ENTRANCE },
+                             Location::Nest,
+                             Location::Nest,
+                             Location::Nest];
+        let green_pawn_locs = [Location::Spot { index: 3 },
+                               Location::Nest,
+                               Location::Nest,
+                               Location::Nest];
+        let mut positions = start_board
+            .positions
+            .clone();
+        positions.insert(Color::Red, red_pawn_locs);
+        positions.insert(Color::Green, green_pawn_locs);
+
+        start_board = Board { positions: positions };
+
+        // Can bop if different colors and only one pawn on
+        // destination square.
+        assert!(start_board.can_bop(Color::Red, 3));
+
+        // Can't bop own pawn.
+        assert!(!start_board.can_bop(Color::Green, 3));
+
+        // Can't bop if spot is uninhabited.
+        assert!(!start_board.can_bop(Color::Red, 4));
+
+        let mut blockade_board = start_board.clone();
+        let mut green_pawn_blockade_locs = green_pawn_locs;
+        green_pawn_blockade_locs[1] = Location::Spot { index: 3 };
+
+        let mut blockade_positions = blockade_board.positions;
+        blockade_positions.insert(Color::Green, green_pawn_blockade_locs);
+        blockade_board = Board { positions: blockade_positions };
+
+        // Can't bop a blockade.
+        assert!(!blockade_board.can_bop(Color::Red, 3));
+
+        let mut entrance_board = Board::new();
+        let green_pawn_entrance_locs = [Location::Spot { index: RED_ENTRANCE },
+                                        Location::Nest,
+                                        Location::Nest,
+                                        Location::Nest];
+
+        let mut entrance_positions = entrance_board.positions;
+        entrance_positions.insert(Color::Green, green_pawn_entrance_locs);
+        entrance_board = Board { positions: entrance_positions };
+
+        // Can bop an opponent pawn off our entrance square.
+        // Note that the only time we move onto the entrance will
+        // be when entering a new pawn.
+        // Any other pawn should already have turned off into the
+        // Home Row.
+        println!("{:#?}", entrance_board);
+        assert!(entrance_board.can_bop(Color::Red, RED_ENTRANCE));
     }
 }
