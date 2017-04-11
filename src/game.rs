@@ -466,7 +466,78 @@ mod tests {
         // be when entering a new pawn.
         // Any other pawn should already have turned off into the
         // Home Row.
-        println!("{:#?}", entrance_board);
+        //println!("{:#?}", entrance_board);
         assert!(entrance_board.can_bop(Color::Red, RED_ENTRANCE));
     }
+
+    #[test]
+    fn handle_enter() {
+        let board = Board::new();
+        let p = Pawn {
+            color: Color::Green,
+            id: 0,
+        };
+        let m = Move {
+            m_type: MoveType::EnterPiece,
+            pawn: p,
+        };
+        let mut expected = Board::new();
+        let green_pawn_locs = [Location::Spot { index: GREEN_ENTRANCE },
+                               Location::Nest,
+                               Location::Nest,
+                               Location::Nest];
+        let mut positions = expected.positions.clone();
+        positions.insert(Color::Green, green_pawn_locs);
+        expected = Board { positions: positions };
+        assert_eq!(expected, board.handle_move(m));
+        //TODO give board a method to update the positions
+        //set_posn(&self,p: Pawn,dest: Location) -> Board
+    }
+
+    #[test]
+    fn normal_move() {
+        let board = Board::new();
+        let p = Pawn {
+            color: Color::Green,
+            id: 0,
+        };
+        let m = Move {
+            m_type: MoveType::MoveMain {
+                start: GREEN_ENTRANCE,
+                distance: 3,
+            },
+            pawn: p,
+        };
+        let mut expected_1 = Board::new();
+        let green_pawn_locs = [Location::Spot { index: GREEN_ENTRANCE },
+                               Location::Nest,
+                               Location::Nest,
+                               Location::Nest];
+        let mut expected_2 = Board::new();
+        
+        
+        assert!(false);
+    }
+
+    #[test]
+    fn double_bonus() {
+
+        assert!(false);
+    }
+
+    #[test]
+    fn double_repeats() {
+        assert!(false);
+    }
+
+    #[test]
+    fn home_move() {
+        assert!(false);
+    }
+
+    #[test]
+    fn home_bonus() {
+        assert!(false);
+    }
+    //TODO test for equality between format strings
 }
