@@ -96,7 +96,7 @@ impl<'a> Game<'a> {
 
         let mut consecutive_turns = 0;
         let dice = roll_dice();
-        let mut rolls: Vec<usize> = vec![dice.d1, dice.d2];
+        let mut rolls: Vec<usize> = vec![dice.0, dice.1];
 
         // Check for doubles.
         if is_doubles(&dice) {
@@ -104,6 +104,7 @@ impl<'a> Game<'a> {
             if consecutive_turns >= 3 {
                 // Player forfeits turn, and their furthest pawn moves
                 // back to the nest.
+
 
             }
 
@@ -134,7 +135,7 @@ fn roll_dice() -> Dice {
 }
 
 fn is_doubles(dice: &Dice) -> bool {
-    dice.d1 == dice.d2
+    dice.0 == dice.1
 }
 
 /// Generic Player trait provides an interface for the
