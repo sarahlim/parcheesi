@@ -2,27 +2,8 @@
 
 use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
+use super::constants::*;
 
-/// THESE ARE BOARD OFFSETS FOR EACH PLAYER.
-static RED_ENTRANCE: usize = 0;
-static BLUE_ENTRANCE: usize = 17;
-static YELLOW_ENTRANCE: usize = 34;
-static GREEN_ENTRANCE: usize = 51;
-
-static SAFETY_OFFSET: &'static [usize] = &[7, 12];
-static HOME_ROW_LENGTH: usize = 7;
-
-static RED_HOME_ROW: usize = 68;
-static BLUE_HOME_ROW: usize = 75;
-static YELLOW_HOME_ROW: usize = 82;
-static GREEN_HOME_ROW: usize = 89;
-
-pub static ALL_COLORS: [Color; 4] =
-    [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-
-
-static BOP_BONUS: usize = 20;
-static HOME_BONUS: usize = 10;
 
 macro_rules! map {
     ( $( $k:expr => $v:expr ),+ ) => {
@@ -58,8 +39,8 @@ pub enum Color {
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Represents a pawn on the board.
 pub struct Pawn {
-    id: usize, // 0..3
-    color: Color,
+    pub id: usize, // 0..3
+    pub color: Color,
 }
 
 impl Pawn {
@@ -104,7 +85,21 @@ impl Board {
         Board { positions: positions }
     }
 
-    fn is_safety(&self, location: Loc) -> bool {
+    pub fn all_pawns_entered(&self, color: Color) -> bool {
+        if let Some(pawn_locs) = self.positions.get(&color) {
+            for i in 0..4 {
+                if let Loc::Nest = pawn_locs[i] {
+                    return false;
+                };
+            }
+        } else {
+            panic!("THERE SHOULD BE PAWN LOCATIONS");
+        }
+        // It okay for a pawn to be at home.
+        true
+    }
+
+    pub fn is_safety(&self, location: Loc) -> bool {
         match location {
             Loc::Spot { index } => {
                 match index {
@@ -118,7 +113,7 @@ impl Board {
         }
     }
 
-    fn is_home_row(&self, color: Color, location: Loc) -> bool {
+    pub fn is_home_row(&self, color: Color, location: Loc) -> bool {
         let home_row_entrance_index = self.get_home_row_entrance(color);
 
         let current_location = match location {
@@ -129,7 +124,13 @@ impl Board {
         current_location < home_row_entrance_index + HOME_ROW_LENGTH
     }
 
-    fn get_entrance(&self, color: Color) -> usize {
+    pub fn get_main_ring_exit(&self, color: Color) -> usize {
+        let entrance = self.get_entrance(color);
+        (entrance - EXIT_TO_ENTRANCE) % BOARD_SIZE
+    }
+        
+
+    pub fn get_entrance(&self, color: Color) -> usize {
         match color {
             Color::Red => RED_ENTRANCE,
             Color::Blue => BLUE_ENTRANCE,
@@ -138,7 +139,7 @@ impl Board {
         }
     }
 
-    fn get_home_row_entrance(&self, color: Color) -> usize {
+    pub fn get_home_row_entrance(&self, color: Color) -> usize {
         match color {
             Color::Red => RED_HOME_ROW,
             Color::Blue => BLUE_HOME_ROW,
@@ -147,7 +148,7 @@ impl Board {
         }
     }
 
-    fn can_bop(&self, bopper_color: Color, dest_index: usize) -> Option<Pawn> {
+    pub fn can_bop(&self, bopper_color: Color, dest_index: usize) -> Option<Pawn> {
         // A pawn can bop if all of the following are true:
         // - dest index is not a safety spot,
         // - dest contains one pawn of a different color.

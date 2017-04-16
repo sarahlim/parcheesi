@@ -2,10 +2,14 @@
 
 extern crate rand;
 
+
 use self::rand::Rng;
 
 use std::collections::BTreeMap;
-use super::board::{Color, ALL_COLORS, Board, Pawn, Loc};
+use super::board::{Color, Board, Pawn, Loc};
+use super::constants::*;
+
+type MiniMoves = Vec<usize>;
 
 /// Represents a game instance with connected Players.
 struct Game<'a> {
@@ -22,6 +26,117 @@ impl<'a> Game<'a> {
             board: Board::new(),
         }
     }
+
+    fn is_blockaded(&self, dest: usize) -> bool {
+        // Iterate over the board positions looking for blockades
+        // loc is an array of locations by color of players
+        for (c,locs) in self.board.positions.iter() {
+            let mut occupancy = 0;
+            for loc in locs.iter() {
+                let x = Loc::Spot { index: dest };
+                if x == *loc {
+                    occupancy += 1;
+                }
+            }
+            if occupancy == 2 {
+                return true;
+            }
+            if occupancy >= 3 {
+                panic!{"Three pawn blockade!"}
+            }
+        }
+        false
+    }
+    
+    fn is_valid_move (&self, mini_moves: MiniMoves, m: Move) -> bool {
+        
+        let Move{ pawn: Pawn { color, id },
+                  m_type} = m;
+        match m.m_type {
+            MoveType::EnterPiece => {
+                let all_pawns_entered = self.board.all_pawns_entered(color);
+                let home_row_entrance = self.board.get_home_row_entrance(color);
+                let is_blockade =  self.is_blockaded(home_row_entrance);
+                all_pawns_entered && is_blockade
+            },
+            MoveType::MoveMain { start, distance } => {
+                // Ensure pawn is currently at start location in the
+                // Main Ring.
+                if let Some(pawn_locs) = self.board.positions.get(&color) {
+                    let spot = Loc::Spot{ index: start };
+                    if pawn_locs[id] != spot {
+                        return false;
+                    }
+                } // Jesus saves //
+                // We want to ensure the distance traveled is legal
+                if !mini_moves.contains(&distance) {
+                    return false;
+                }
+                // Don't let the pawn go through any blockades on their
+                // way to the destination.
+                for i in 0..distance {
+                    let end = self.board.get_main_ring_exit(color);
+                    // pawns should wrap into their home row
+                    // We have to this because we are using absolute addressing
+                    // and some pawn's home rows may not be the next number after
+                    // the end of the board
+                    // If red is at 60, and it rolls a 5
+                    // it would proceed 61,62,63,68,69
+                    //                           ^ is the home row entrance
+                    let is_past_end = start + i > (self.board.get_entrance(color) - EXIT_TO_ENTRANCE) % BOARD_SIZE;
+                    let offset = if is_past_end { end } else { start };
+                    if self.is_blockaded(offset + i) {
+                        return false;
+                    }
+                }
+                true
+            }
+        
+            MoveType::MoveHome {start, distance } => {
+                // Ensure pawn is currently at start location in the
+                // Main Ring.
+                if let Some(pawn_locs) = self.board.positions.get(&color) {
+                    if start < self.board.get_home_row_entrance(color) {
+                        return false;
+                    }
+                    let spot = Loc::Spot{ index: start };
+                    if pawn_locs[id] != spot {
+                        return false;
+                    }
+                } // Jesus saves //
+                // We want to ensure the distance traveled is legal
+                if !mini_moves.contains(&distance) {
+                    return false;
+                }
+
+                
+                // Don't let the pawn go through any blockades on their
+                // way to the destination.
+                for i in 0..distance {
+                    let end = self.board.get_main_ring_exit(color);
+                    // pawns should wrap into their home row
+                    // We have to this because we are using absolute addressing
+                    // and some pawn's home rows may not be the next number after
+                    // the end of the board
+                    // If red is at 60, and it rolls a 5
+                    // it would proceed 61,62,63,68,69
+                    //                           ^ is the home row entrance
+                    let is_past_end = start + i > (self.board.get_entrance(color) - EXIT_TO_ENTRANCE) % BOARD_SIZE;
+                    let offset = if is_past_end { end } else { start };
+                    if self.is_blockaded(offset + i) {
+                        return false;
+                    }                 
+                }
+                // Allows us to see if the move is overshooting the home
+                let overshoot = self.board.get_home_row_entrance(color) + HOME_ROW_LENGTH;
+                if start + distance > overshoot {
+                    return false;
+                }
+                true
+            }
+        }
+    }
+
 
     /// Register a new player with the game.
     /// If there are no remaining colors available, return an error.
@@ -121,10 +236,12 @@ impl<'a> Game<'a> {
             // Award the player another turn, and keep track of the number of turns.
             consecutive_turns += 1;
         } else {
+
         }
         // TODO: Implement this.
     }
 }
+
 
 /// Simulates the result of rolling two dice.
 fn roll_dice() -> Dice {
@@ -158,7 +275,7 @@ pub trait Player {
 /// Holds the result of two die rolls.
 pub struct Dice(usize, usize);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug,Copy, Clone, PartialEq)]
 /// Represents a move selected by a player.
 pub enum MoveType {
     /// Represents a move that starts on the main ring
