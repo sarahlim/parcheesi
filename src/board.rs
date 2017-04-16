@@ -128,7 +128,7 @@ impl Board {
         let entrance = self.get_entrance(color);
         (entrance - EXIT_TO_ENTRANCE) % BOARD_SIZE
     }
-        
+
 
     pub fn get_entrance(&self, color: Color) -> usize {
         match color {
@@ -148,7 +148,10 @@ impl Board {
         }
     }
 
-    pub fn can_bop(&self, bopper_color: Color, dest_index: usize) -> Option<Pawn> {
+    pub fn can_bop(&self,
+                   bopper_color: Color,
+                   dest_index: usize)
+                   -> Option<Pawn> {
         // A pawn can bop if all of the following are true:
         // - dest index is not a safety spot,
         // - dest contains one pawn of a different color.
@@ -289,6 +292,59 @@ impl Board {
 mod tests {
     use super::*;
 
+    /// To make testing less verbose, we can express a board in terms of
+    /// the difference in pawn positions from an initial board.
+    type BoardPosnDiff = BTreeMap<Color, PawnLocs>;
+
+    /// Helper utility for testing that moves produce expected boards.
+    fn move_tester(start: BoardPosnDiff,
+                   m: Move,
+                   expected: BoardPosnDiff,
+                   expected_bonus: Option<Bonus>)
+                   -> Result<MoveResult, &'static str> {
+        let mut start_board = Board::new();
+        let mut expected_board = Board::new();
+
+        // Mutate the initial boards according to the start and expected
+        // BoardPosnDiffs,
+        for (clr, locs) in start.into_iter() {
+            start_board
+                .positions
+                .insert(clr, locs);
+        }
+        for (clr, locs) in expected.into_iter() {
+            expected_board
+                .positions
+                .insert(clr, locs);
+        }
+
+        match start_board.handle_move(m) {
+            Ok(MoveResult(actual_board, bonus)) => {
+                // Check that the actual bonus corresponds to the expected
+                // bonus.
+                assert_eq!(bonus, expected_bonus);
+                assert_eq!(actual_board, expected_board);
+                Ok(MoveResult(actual_board, bonus))
+            }
+            // If handling the move threw an error, our test should fail.
+            Err(e) => {
+                println!("{:?}", e);
+                assert!(false);
+                Err(e)
+            }
+        }
+    }
+
+    /// Testing Conventions:
+    ///
+    /// - b0: starting BoardPosnDiff
+    /// - m1: first dispatched Move
+    /// - b<#>: the BoardPosnDiff that results from calling
+    ///         b<#-1>.handle_move(m<#>)
+    ///
+    /// Always clone boards the first time they are used if needed,
+    /// Always declare in the order: b0, m1, b1, (test), m2, b2, (test), etc.
+
     /// Pawn color comparison should work as intended.
     fn test_pawn_colors() {
         let y1 = Pawn::new(1, Color::Yellow);
@@ -397,13 +453,17 @@ mod tests {
             Ok(MoveResult(b, _)) => assert_eq!(expected, b),
             Err(e) => assert!(false),
         };
-
-        //TODO give board a method to update the positions
-        //set_posn(&self,p: Pawn,dest: Loc) -> Board
     }
 
     #[test]
-    fn normal_move() {
+    // Testing basic movements (single pawn, no other players, no bonuses).
+    fn move_test() {
+        let b0: BoardPosnDiff = map!{
+            Color::Green => [Loc::Spot { index: GREEN_ENTRANCE },
+                               Loc::Nest,
+                               Loc::Nest,
+                               Loc::Nest]
+        };
         let p = Pawn {
             color: Color::Green,
             id: 0,
@@ -415,51 +475,13 @@ mod tests {
             },
             pawn: p,
         };
-
-        let green_pawn_locs = [Loc::Spot { index: GREEN_ENTRANCE },
-                               Loc::Nest,
-                               Loc::Nest,
-                               Loc::Nest];
-        let b0 = Board {
-            positions: map!{
-            Color::Red => [Loc::Nest; 4],
-            Color::Blue => [Loc::Nest; 4],
-            Color::Yellow => [Loc::Nest; 4],
-            Color::Green => green_pawn_locs
-        },
-        };
-
-        let b1 = Board {
-            positions: map!{
-            Color::Red => [Loc::Nest; 4],
-            Color::Blue => [Loc::Nest; 4],
-            Color::Yellow => [Loc::Nest; 4],
-            Color::Green =>  [Loc::Spot { index: 54 },
+        let b1 = map!{
+            Color::Green => [Loc::Spot { index: 54 },
                                Loc::Nest,
                                Loc::Nest,
                                Loc::Nest]
-        },
         };
-
-        let b2 = Board {
-            positions: map!{
-            Color::Red => [Loc::Nest; 4],
-            Color::Blue => [Loc::Nest; 4],
-            Color::Yellow => [Loc::Nest; 4],
-            Color::Green =>  [Loc::Spot { index: 64 },
-                               Loc::Nest,
-                               Loc::Nest,
-                               Loc::Nest]
-        },
-        };
-
-        let r1 = b0.handle_move(m1);
-        match r1 {
-            Ok(MoveResult(b, _)) => assert_eq!(b1, b),
-            Err(e) => assert!(false),
-        };
-
-        //assert_eq!(b1, b0.handle_move(m1));
+        move_tester(b0, m1, b1.clone(), None);
 
         let m2 = Move {
             m_type: MoveType::MoveMain {
@@ -468,8 +490,13 @@ mod tests {
             },
             pawn: p.clone(),
         };
-
-
+        let b2 = map!{
+            Color::Green => [Loc::Spot { index: 58 },
+            Loc::Nest,
+            Loc::Nest,
+            Loc::Nest]
+        };
+        move_tester(b1, m2, b2.clone(), None);
 
         let m3 = Move {
             m_type: MoveType::MoveMain {
@@ -478,25 +505,13 @@ mod tests {
             },
             pawn: p.clone(),
         };
-
-        let mut r2 = b1.handle_move(m2);
-        match r2 {
-            Ok(MoveResult(b, _)) => {
-                r2 = b.handle_move(m3);
-                match r2 {
-                    Ok(MoveResult(final_board, _)) => {
-                        assert_eq!(final_board, b2)
-                    }
-                    Err(e) => assert!(false),
-                }
-            }
-            Err(e) => assert!(false),
+        let b3 = map!{
+            Color::Green => [Loc::Spot { index: 64 },
+                               Loc::Nest,
+                               Loc::Nest,
+                               Loc::Nest]
         };
-
-        //assert_eq!(b2,
-        //          b1.handle_move(m2)
-        //             .handle_move(m3));
-
+        move_tester(b2, m3, b3, None);
     }
 
     #[test]
@@ -529,5 +544,4 @@ mod tests {
     fn home_bonus() {
         assert!(false);
     }
-    //TODO test for equality between format strings
 }
