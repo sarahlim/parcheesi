@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
 use super::constants::*;
 
-
 macro_rules! map {
     ( $( $k:expr => $v:expr ),+ ) => {
         {
@@ -17,8 +16,6 @@ macro_rules! map {
     };
 }
 
-
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the location of a pawn.
 pub enum Loc {
@@ -26,6 +23,8 @@ pub enum Loc {
     Nest,
     Home,
 }
+
+pub type PawnLocs = [Loc; 4];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 /// Represents a color of a Pawn or Player.
@@ -36,11 +35,11 @@ pub enum Color {
     Yellow,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Represents a pawn on the board.
 pub struct Pawn {
-    pub id: usize, // 0..3
     pub color: Color,
+    pub id: usize, // 0..3
 }
 
 impl Pawn {
@@ -54,39 +53,86 @@ impl Pawn {
     }
 }
 
-pub type PawnLocs = [Loc; 4];
-
-
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-/// Represents a board state, containing the positions
-/// of all pawns.
-/// Positions is a map from a color, C, to a four element array, where
-/// each index, i, is the location of the ith pawn with color C.
-
-
-pub struct Board {
-    pub positions: BTreeMap<Color, PawnLocs>,
-}
-
-pub struct MoveResult(Board, Option<Bonus>);
+pub struct MoveResult(pub Board, pub Option<Bonus>);
 
 type Bonus = usize;
 
-impl Board {
-    pub fn new() -> Board {
-        let mut positions = BTreeMap::new();
-        let init_pawn_locations = [Loc::Nest; 4];
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// Represents a board, containing the positions of all pawns.
+pub struct Board {
+    positions: BTreeMap<Color, PawnLocs>,
+}
 
-        for c in ALL_COLORS.iter() {
-            positions.insert(c.clone(), init_pawn_locations.clone());
+impl Board {
+    // Initialize a new game board in the starting configuration,
+    // i.e. all pawns are in their respective nests.
+    pub fn new() -> Board {
+        let mut positions: BTreeMap<Color, PawnLocs> = BTreeMap::new();
+        let init_pawn_locs: PawnLocs = [Loc::Nest; 4];
+
+        for clr in ALL_COLORS.iter() {
+            for i in 0..4 {
+                positions.insert(clr.clone(), init_pawn_locs.clone());
+            }
         }
 
         Board { positions: positions }
     }
 
-    pub fn all_pawns_entered(&self, color: Color) -> bool {
-        if let Some(pawn_locs) = self.positions.get(&color) {
+    /// Checks if a player has won the game, and returns an Option containing
+    /// the winner's color if one exists.
+    pub fn has_winner(&self) -> Option<Color> {
+        let all_home = |pawn_locs: PawnLocs| {
+            pawn_locs
+                .iter()
+                .all(|&loc| loc == Loc::Home)
+        };
+        if let Some((clr, _)) =
+            self.positions
+                .iter()
+                .find(|&(_, &pawn_locs)| all_home(pawn_locs)) {
+            Some(clr.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Returns a list of all blockades on the board.
+    pub fn get_blockades(&self) -> Vec<Loc> {
+        let blockades_for_color = |locs: PawnLocs| {
+            let mut blockades: Vec<Loc> = Vec::new();
+            let mut seen: Vec<Loc> = Vec::new();
+            for loc in locs.iter() {
+                if seen.contains(loc) {
+                    blockades.push(*loc);
+                } else {
+                    seen.push(*loc);
+                }
+            }
+            blockades
+        };
+
+        self.positions
+            .iter()
+            .map(|(color, &locs)| blockades_for_color(locs))
+            .fold(Vec::new(), |mut memo, mut b| {
+                memo.append(&mut b);
+                memo
+            })
+    }
+
+    /// Checks the location of a pawn in the main ring.
+    pub fn get_pawn_loc(&self, pawn: &Pawn) -> Loc {
+        if let Some(locs) = self.positions
+               .get(&pawn.color) {
+            locs[pawn.id]
+        } else {
+            panic!("Couldn't get pawn location: couldn't find player with that color")
+        }
+    }
+
+    pub fn all_pawns_entered(&self, color: &Color) -> bool {
+        if let Some(pawn_locs) = self.positions.get(color) {
             for i in 0..4 {
                 if let Loc::Nest = pawn_locs[i] {
                     return false;
@@ -128,7 +174,6 @@ impl Board {
         let entrance = self.get_entrance(color);
         (entrance - EXIT_TO_ENTRANCE) % BOARD_SIZE
     }
-
 
     pub fn get_entrance(&self, color: Color) -> usize {
         match color {
@@ -211,8 +256,36 @@ impl Board {
         None
     }
 
+    // The main ring is absolutely indexed, but the
+    // Home Row entrances for each player are not continuous,
+    // e.g. Green enters at 89, Red at 68, etc.
+    // To compute whether the move should wrap into
+    // the home row, we need to check whether the move would
+    // go past the end of the main ring for the player.
+    fn compute_main_ring_dest(&self,
+                              color: Color,
+                              start: usize,
+                              distance: usize)
+                              -> usize {
+        let home_row_entrance: usize = self.get_home_row_entrance(color);
+        let exit: usize = self.get_main_ring_exit(color);
+
+        if start + distance > exit {
+            let offset = (start + distance) - exit - 1;
+            println!("color: {:#?}", color);
+            println!("start: {}", start);
+            println!("distance: {}", distance);
+            println!("exit: {}", exit);
+            println!("offset: {}", offset);
+            println!("homerowentrance: {}", home_row_entrance);
+            offset + home_row_entrance
+        } else {
+            start + distance
+        }
+    }
+
     /// Takes a move and returns a new board.
-    fn handle_move(&self, m: Move) -> Result<MoveResult, &'static str> {
+    pub fn handle_move(&self, m: Move) -> Result<MoveResult, &'static str> {
         let mut positions = self.positions.clone();
         let Move {
             pawn: Pawn { color, id },
@@ -267,12 +340,15 @@ impl Board {
                             positions.insert(boppee.color, next_locs);
                         }
 
-
                         bonus = Some(BOP_BONUS);
                     }
 
-                    // Finally, return the location of the move.
-                    Loc::Spot { index: start + distance }
+                    println!("color: {:#?}", color);
+                    println!("start: {}", start);
+                    println!("distance: {}", distance);
+                    let dest: usize =
+                        self.compute_main_ring_dest(color, start, distance);
+                    Loc::Spot { index: dest }
                 }
             };
 
@@ -322,6 +398,7 @@ mod tests {
             Ok(MoveResult(actual_board, bonus)) => {
                 // Check that the actual bonus corresponds to the expected
                 // bonus.
+                println!("{:#?}", actual_board);
                 assert_eq!(bonus, expected_bonus);
                 assert_eq!(actual_board, expected_board);
                 Ok(MoveResult(actual_board, bonus))
@@ -404,7 +481,6 @@ mod tests {
         // Can't bop a blockade.
         let r_blockade = blockade_board.can_bop(Color::Red, 3);
         assert!(r_blockade.is_none());
-
         let mut entrance_board = Board::new();
         let green_pawn_entrance_locs = [Loc::Spot { index: RED_ENTRANCE },
                                         Loc::Nest,
@@ -455,9 +531,13 @@ mod tests {
         };
     }
 
+    //////////////////////////
+    // Basic Movement Tests
+    //////////////////////////
+
     #[test]
     // Testing basic movements (single pawn, no other players, no bonuses).
-    fn move_test() {
+    fn test_move_piece() {
         let b0: BoardPosnDiff = map!{
             Color::Green => [Loc::Spot { index: GREEN_ENTRANCE },
                                Loc::Nest,
@@ -515,33 +595,46 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn test_handle_bop() {
-
-        assert!(false);
+    /// Moving from main ring into home row.
+    fn test_move_into_home_row() {
+        let b0: BoardPosnDiff = map!{
+           Color::Green => [Loc::Spot { index: 43 },
+                              Loc::Nest,
+                              Loc::Nest,
+                              Loc::Nest]
+       };
+        let p = Pawn {
+            color: Color::Green,
+            id: 0,
+        };
+        let move_four = Move {
+            m_type: MoveType::MoveMain {
+                start: 43,
+                distance: 4,
+            },
+            pawn: p,
+        };
+        let result = map!{
+           Color::Green => [Loc::Spot { index: 89 },
+                              Loc::Nest,
+                              Loc::Nest,
+                              Loc::Nest]
+       };
+        move_tester(b0, move_four, result.clone(), None);
     }
+
     #[test]
     #[ignore]
-    fn double_bonus() {
-
-        assert!(false);
-    }
+    /// Moving from home row to home row.
+    fn test_move_on_home_row() {}
 
     #[test]
     #[ignore]
-    fn double_repeats() {
-        assert!(false);
-    }
+    /// Moving home should award a bonus.
+    fn test_move_home_bonus() {}
 
     #[test]
     #[ignore]
-    fn home_move() {
-        assert!(false);
-    }
-
-    #[test]
-    #[ignore]
-    fn home_bonus() {
-        assert!(false);
-    }
+    /// Cannot move if no piece is present on the square.
+    fn test_move_no_piece_present() {}
 }
