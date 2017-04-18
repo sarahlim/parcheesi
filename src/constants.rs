@@ -1,27 +1,31 @@
-#![allow(dead_code, unused_variables)]
+#![allow(dead_code)]
 
-/// THESE ARE BOARD OFFSETS FOR EACH PLAYER.
 use super::board::Color;
 
-pub static RED_ENTRANCE: usize = 0;
-pub static BLUE_ENTRANCE: usize = 17;
-pub static YELLOW_ENTRANCE: usize = 34;
-pub static GREEN_ENTRANCE: usize = 51;
-
-pub static SAFETY_OFFSET: &'static [usize] = &[7, 12];
-pub static HOME_ROW_LENGTH: usize = 7;
-
-pub static RED_HOME_ROW: usize = 68;
-pub static BLUE_HOME_ROW: usize = 75;
-pub static YELLOW_HOME_ROW: usize = 82;
-pub static GREEN_HOME_ROW: usize = 89;
-
-pub static EXIT_TO_ENTRANCE: usize = 5;
-pub static BOARD_SIZE: usize = 68;
-
-pub static ALL_COLORS: [Color; 4] =
+pub static COLORS: [Color; 4] =
     [Color::Red, Color::Blue, Color::Yellow, Color::Green];
 
+/// THESE ARE BOARD OFFSETS FOR EACH PLAYER.
+pub static RED_ENTRANCE: usize = 4;
+pub static BLUE_ENTRANCE: usize = 21;
+pub static YELLOW_ENTRANCE: usize = 38;
+pub static GREEN_ENTRANCE: usize = 55;
+
+pub static RED_HOME_ROW: usize = 100;
+pub static BLUE_HOME_ROW: usize = 200;
+pub static YELLOW_HOME_ROW: usize = 300;
+pub static GREEN_HOME_ROW: usize = 400;
+
+/// Absolute distance between a player's entry spot and
+/// main ring exit (i.e., the point at which they turn off into the
+/// home row).
+pub static EXIT_TO_ENTRANCE: usize = 5;
+
+pub static HOME_ROW_LENGTH: usize = 7;
+pub static BOARD_SIZE: usize = 68;
+
+pub static SAFETY_SPOTS: &'static [usize] = &[4, 11, 16, 21, 28, 33, 38, 45,
+                                              50, 55, 62, 67];
 
 pub static BOP_BONUS: usize = 20;
 pub static HOME_BONUS: usize = 10;

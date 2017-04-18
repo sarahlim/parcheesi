@@ -152,7 +152,7 @@ mod tests {
     #[test]
     /// Make sure dice are fair, i.e. the sum of two die rolls
     /// is most frequently 7.
-    fn dice_fair_test() {
+    fn dice_fair() {
         let mut freq = [0; 13]; // 2...12 are the outcomes
 
         for i in 0..10000 {
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     /// Enter with 1, 4.
-    fn enter_1_4_test() {
+    fn enter_1_4() {
         let dice = Dice {
             rolls: vec![1, 4],
             used: Vec::new(),
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     /// Enter with 2, 3.
-    fn enter_2_3_test() {
+    fn enter_2_3() {
         let dice = Dice {
             rolls: vec![2, 3],
             used: Vec::new(),
@@ -208,21 +208,15 @@ mod tests {
             rolls: vec![5, 5, 6],
             used: Vec::new(),
         };
-
         assert!(dice.can_enter() != EntryMove::NoEntry);
-
         dice = dice.consume_entry_move();
-
         assert_eq!(dice,
                    Dice {
                        rolls: vec![5, 6],
                        used: vec![5],
                    });
-
         assert!(dice.can_enter() != EntryMove::NoEntry);
-
         dice = dice.consume_entry_move();
-
         assert_eq!(dice,
                    Dice {
                        rolls: vec![6],

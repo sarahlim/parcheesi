@@ -2,13 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use super::dice::{Dice, EntryMove};
+use super::dice::Dice;
 use super::board::{Color, Board, Pawn, Loc, MoveResult};
 use super::constants::*;
-
-/// Represents a vector of possible mini-moves for a turn,
-/// populated by dice rolls and bonuses.
-type MiniMoves = Vec<usize>;
 
 /// Represents a game instance with connected Players.
 struct Game<'a> {
@@ -31,9 +27,9 @@ impl<'a> Game<'a> {
     fn register_player<T: Player + 'a>(&mut self, p: &'a T) -> () {
         let num_players_before = self.players.len();
 
-        if self.players.len() <= ALL_COLORS.len() {
+        if self.players.len() <= COLORS.len() {
             // Assign a color to the new player.
-            for color in ALL_COLORS.iter() {
+            for color in COLORS.iter() {
                 if !self.players
                         .contains_key(color) {
                     self.players
@@ -103,10 +99,18 @@ impl<'a> Game<'a> {
             .is_some() || self.players.is_empty()
     }
 
-    // fn give_turn<T: &'a (Player + 'a)>(&mut self,
-    // color: &Color,
-    // player: T)
-    // -> () {
+    /// Give a turn to a player, keeping track of dice rolls
+    /// and changes to the board.
+    ///
+    /// Chosen moves are validated at two points:
+    ///
+    /// (1) Every individual move is checked for validity with respect
+    ///     to the board and dice it started from.
+    ///
+    /// (2) At the end of a turn, the starting and ending board/dice states
+    ///     are compared to check for cross-turn validity.
+    ///     For instance, we can only enforce that blockades don't move
+    ///     together if we validate across the entire turn.
     fn give_turn(&mut self, color: &Color, player: &Player) -> () {
         let mut doubles_rolled: i32 = 0;
 
@@ -167,10 +171,11 @@ impl<'a> Game<'a> {
     fn is_valid_move(&self, board: &Board, dice: &Dice, m: &Move) -> bool {
         let Move { pawn, m_type } = *m;
         let Pawn { color, id } = pawn;
+
         match m.m_type {
             MoveType::EnterPiece => {
                 let all_pawns_entered = board.all_pawns_entered(&color);
-                let home_row_entrance = board.get_home_row_entrance(color);
+                let home_row_entrance = Board::get_home_row(&color);
                 let is_blockade =
                     board
                         .get_blockades()
@@ -194,7 +199,7 @@ impl<'a> Game<'a> {
                 // way to the destination.
                 let blockades: Vec<Loc> = board.get_blockades();
                 for i in 0..distance {
-                    let end = board.get_main_ring_exit(color);
+                    let end = Board::get_exit(&color);
                     // pawns should wrap into their home row
                     // We have to this because we are using absolute addressing
                     // and some pawn's home rows may not be the next number
@@ -203,7 +208,7 @@ impl<'a> Game<'a> {
                     // it would proceed 61,62,63,68,69
                     //                           ^ is the home row entrance
                     let is_past_end = start + i >
-                                      (board.get_entrance(color) -
+                                      (Board::get_entrance(&color) -
                                        EXIT_TO_ENTRANCE) %
                                       BOARD_SIZE;
                     let offset = if is_past_end { end } else { start };
@@ -234,7 +239,7 @@ impl<'a> Game<'a> {
                 // Don't let the pawn go through any blockades on their
                 // way to the destination.
                 for i in 0..distance {
-                    let end = board.get_main_ring_exit(color);
+                    let end = Board::get_exit(&color);
                     // pawns should wrap into their home row
                     // We have to this because we are using absolute addressing
                     // and some pawn's home rows may not be the next number
@@ -243,7 +248,7 @@ impl<'a> Game<'a> {
                     // it would proceed 61,62,63,68,69
                     //                           ^ is the home row entrance
                     let is_past_end = start + i >
-                                      (board.get_entrance(color) -
+                                      (Board::get_entrance(&color) -
                                        EXIT_TO_ENTRANCE) %
                                       BOARD_SIZE;
                     let offset = if is_past_end { end } else { start };
@@ -255,8 +260,7 @@ impl<'a> Game<'a> {
                 }
 
                 // Allows us to see if the move is overshooting the home
-                let overshoot = board.get_home_row_entrance(color) +
-                                HOME_ROW_LENGTH;
+                let overshoot = Board::get_home_row(&color) + HOME_ROW_LENGTH;
                 if start + distance > overshoot {
                     return false;
                 }

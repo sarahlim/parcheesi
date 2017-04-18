@@ -70,13 +70,146 @@ impl Board {
         let mut positions: BTreeMap<Color, PawnLocs> = BTreeMap::new();
         let init_pawn_locs: PawnLocs = [Loc::Nest; 4];
 
-        for clr in ALL_COLORS.iter() {
+        for clr in COLORS.iter() {
             for i in 0..4 {
                 positions.insert(clr.clone(), init_pawn_locs.clone());
             }
         }
 
         Board { positions: positions }
+    }
+
+    /// Takes a move and returns a new board.
+    pub fn handle_move(&self, m: Move) -> Result<MoveResult, &'static str> {
+        let mut positions = self.positions.clone();
+        let Move {
+            pawn: Pawn { color, id },
+            m_type,
+        } = m;
+
+        let mut bonus = None;
+
+
+        // The color of the pawn being moved tells us
+        // which player's pawn locations we need to modify.
+        let player_pawns = self.positions.get(&color);
+
+        if let Some(pawns) = player_pawns {
+            let mut next_pawns = *pawns;
+
+            let next_loc = match m_type {
+                MoveType::EnterPiece => {
+                    Loc::Spot { index: Board::get_entrance(&color) }
+                }
+                MoveType::MoveHome { start, distance } => {
+                    // Pawns may only move home by an exact amount.
+                    let home_row_entrance = Board::get_home_row(&color);
+                    let home_index = home_row_entrance + HOME_ROW_LENGTH;
+                    let dest_index = start + distance;
+
+                    if dest_index == home_index {
+                        bonus = Some(HOME_BONUS);
+                        Loc::Home
+                    } else if dest_index < home_index {
+                        // If the destination is short of the Home,
+                        // It is just a regular movement in the Home Row.
+                        Loc::Spot { index: start + distance }
+                    } else {
+                        return Err("Can't overshoot home");
+                    }
+                }
+                MoveType::MoveMain { start, distance } => {
+                    // If the destination spot has a single pawn of
+                    // another color, bop it back to start.
+                    let destination = start + distance;
+
+                    if let Some(boppee) = self.can_bop(color, destination) {
+                        // If a bop occurs, we need to handle two side effects:
+
+                        // 1. Move the boppee pawn back to its home.
+                        let boppee_locs = self.positions
+                            .get(&boppee.color);
+                        if let Some(old_locs) = boppee_locs {
+                            let mut next_locs = old_locs.clone();
+                            next_locs[boppee.id] = Loc::Nest; // Monster
+                            positions.insert(boppee.color, next_locs);
+                        }
+
+                        bonus = Some(BOP_BONUS);
+                    }
+
+                    println!("color: {:#?}", color);
+                    println!("start: {}", start);
+                    println!("distance: {}", distance);
+                    let dest: usize =
+                        self.compute_main_ring_dest(color, start, distance);
+                    Loc::Spot { index: dest }
+                }
+            };
+
+            next_pawns[id] = next_loc;
+
+            // Modify the copy of the positions map
+            // with the new positions of the moving player's
+            // pawns.
+            positions.insert(color, next_pawns);
+        }
+
+        Ok(MoveResult(Board { positions: positions }, bonus))
+    }
+
+    // Associated helper function to compute the next (start + 1) location
+    // for a pawn's movement, based on its color.
+    //
+    // Note that this function does NOT have access to the board state.
+    // It's merely used to abstract over the unfortunate arithmetic from
+    // absolute indexing.
+    fn next_loc(color: &Color, start: &Loc) -> Result<Loc, &'static str> {
+        let entrance: usize = Board::get_entrance(&color);
+        let home_row: usize = Board::get_home_row(&color);
+        let exit: usize = Board::get_home_row(&color);
+
+        let result: Loc = match *start {
+            // If we start from Home, there is no next location -- that would
+            // be overshooting.
+            Loc::Home => return Err("Can't overshoot home"),
+
+            // If we start from the Nest, the next location is the player's
+            // entrance.
+            Loc::Nest => Loc::Spot { index: entrance },
+
+            // If we start from a spot on the board, need more information
+            // about the spot, so we match again on the index.
+            Loc::Spot { index } => {
+                match index {
+                    // If we are on the main ring exit, enter the home row.
+                    ex if ex == exit => Loc::Spot { index: home_row },
+
+                    // If we are anywhere in home row, one of the following
+                    // occurs:
+                    // (1) Increment by 1, a regular move
+                    // (2) Land home
+                    // (3) Overshoot home (this case may be redundant?)
+                    hr if hr >= home_row => {
+                        let home: usize = home_row + HOME_ROW_LENGTH;
+                        let dest: usize = index + 1;
+
+                        match dest {
+                            x if x > home => return Err("Can't overshoot home"),
+                            h if h == home => Loc::Home,
+                            _ => Loc::Spot { index: dest },
+                        }
+                    }
+
+                    // Otherwise, it's just an ordinary move on the main ring.
+                    // Return the next location, modulo the board size.
+                    _ => Loc::Spot { index: index + 1 % BOARD_SIZE },
+                }
+            }
+
+        };
+
+        Ok(result)
     }
 
     /// Checks if a player has won the game, and returns an Option containing
@@ -131,36 +264,28 @@ impl Board {
         }
     }
 
+    /// Returns whether all the pawns for a given player have left
+    /// the nest.
     pub fn all_pawns_entered(&self, color: &Color) -> bool {
-        if let Some(pawn_locs) = self.positions.get(color) {
-            for i in 0..4 {
-                if let Loc::Nest = pawn_locs[i] {
-                    return false;
-                };
-            }
+        if let Some(locs) = self.positions.get(&color) {
+            locs.iter()
+                .all(|&loc| loc != Loc::Nest)
         } else {
-            panic!("THERE SHOULD BE PAWN LOCATIONS");
+            panic!("Couldn't find pawns for given player");
         }
-        // It okay for a pawn to be at home.
-        true
     }
 
-    pub fn is_safety(&self, location: Loc) -> bool {
-        match location {
-            Loc::Spot { index } => {
-                match index {
-                    0 | 7 | 12 | 17 | 24 | 29 | 34 | 41 | 46 | 51 | 58 | 63 => {
-                        true
-                    }
-                    _ => false,
-                }
-            }
-            _ => false,
+    /// Associated function to check whether a Loc is a safety spot.
+    pub fn is_safety(loc: Loc) -> bool {
+        if let Loc::Spot { index } = loc {
+            SAFETY_SPOTS.contains(&index)
+        } else {
+            false
         }
     }
 
     pub fn is_home_row(&self, color: Color, location: Loc) -> bool {
-        let home_row_entrance_index = self.get_home_row_entrance(color);
+        let home_row_entrance_index = Board::get_home_row(&color);
 
         let current_location = match location {
             Loc::Spot { index } => index,
@@ -170,13 +295,15 @@ impl Board {
         current_location < home_row_entrance_index + HOME_ROW_LENGTH
     }
 
-    pub fn get_main_ring_exit(&self, color: Color) -> usize {
-        let entrance = self.get_entrance(color);
+    /// Associated function to return the exit index for a player.
+    pub fn get_exit(color: &Color) -> usize {
+        let entrance = Board::get_entrance(&color);
         (entrance - EXIT_TO_ENTRANCE) % BOARD_SIZE
     }
 
-    pub fn get_entrance(&self, color: Color) -> usize {
-        match color {
+    /// Associated function to return the entry index for a player.
+    pub fn get_entrance(color: &Color) -> usize {
+        match *color {
             Color::Red => RED_ENTRANCE,
             Color::Blue => BLUE_ENTRANCE,
             Color::Yellow => YELLOW_ENTRANCE,
@@ -184,8 +311,9 @@ impl Board {
         }
     }
 
-    pub fn get_home_row_entrance(&self, color: Color) -> usize {
-        match color {
+    /// Associated function to return the home row entrance index for a player.
+    pub fn get_home_row(color: &Color) -> usize {
+        match *color {
             Color::Red => RED_HOME_ROW,
             Color::Blue => BLUE_HOME_ROW,
             Color::Yellow => YELLOW_HOME_ROW,
@@ -205,9 +333,9 @@ impl Board {
         //    a. bopper's entrance => MIGHT BE ABLE TO BOP, KEEP CHECKING
         //    b. any other safety => CANNOT BOP
         let dest_loc = Loc::Spot { index: dest_index };
-        let bopper_entrance = self.get_entrance(bopper_color);
+        let bopper_entrance = Board::get_entrance(&bopper_color);
 
-        if self.is_safety(dest_loc) && dest_index != bopper_entrance {
+        if Board::is_safety(dest_loc) && dest_index != bopper_entrance {
             return None;
         }
 
@@ -267,8 +395,8 @@ impl Board {
                               start: usize,
                               distance: usize)
                               -> usize {
-        let home_row_entrance: usize = self.get_home_row_entrance(color);
-        let exit: usize = self.get_main_ring_exit(color);
+        let home_row_entrance: usize = Board::get_home_row(&color);
+        let exit: usize = Board::get_exit(&color);
 
         if start + distance > exit {
             let offset = (start + distance) - exit - 1;
@@ -282,85 +410,6 @@ impl Board {
         } else {
             start + distance
         }
-    }
-
-    /// Takes a move and returns a new board.
-    pub fn handle_move(&self, m: Move) -> Result<MoveResult, &'static str> {
-        let mut positions = self.positions.clone();
-        let Move {
-            pawn: Pawn { color, id },
-            m_type,
-        } = m;
-
-        let mut bonus = None;
-
-
-        // The color of the pawn being moved tells us
-        // which player's pawn locations we need to modify.
-        let player_pawns = self.positions.get(&color);
-
-        if let Some(pawns) = player_pawns {
-            let mut next_pawns = *pawns;
-
-            let next_loc = match m_type {
-                MoveType::EnterPiece => {
-                    Loc::Spot { index: self.get_entrance(color) }
-                }
-                MoveType::MoveHome { start, distance } => {
-                    // Pawns may only move home by an exact amount.
-                    let home_row_entrance = self.get_home_row_entrance(color);
-                    let home_index = home_row_entrance + HOME_ROW_LENGTH;
-                    let dest_index = start + distance;
-
-                    if dest_index == home_index {
-                        bonus = Some(HOME_BONUS);
-                        Loc::Home
-                    } else if dest_index < home_index {
-                        // If the destination is short of the Home,
-                        // It is just a regular movement in the Home Row.
-                        Loc::Spot { index: start + distance }
-                    } else {
-                        return Err("Can't overshoot home");
-                    }
-                }
-                MoveType::MoveMain { start, distance } => {
-                    // If the destination spot has a single pawn of
-                    // another color, bop it back to start.
-                    let destination = start + distance;
-
-                    if let Some(boppee) = self.can_bop(color, destination) {
-                        // If a bop occurs, we need to handle two side effects:
-
-                        // 1. Move the boppee pawn back to its home.
-                        let boppee_locs = self.positions
-                            .get(&boppee.color);
-                        if let Some(old_locs) = boppee_locs {
-                            let mut next_locs = old_locs.clone();
-                            next_locs[boppee.id] = Loc::Nest; // Monster
-                            positions.insert(boppee.color, next_locs);
-                        }
-
-                        bonus = Some(BOP_BONUS);
-                    }
-
-                    println!("color: {:#?}", color);
-                    println!("start: {}", start);
-                    println!("distance: {}", distance);
-                    let dest: usize =
-                        self.compute_main_ring_dest(color, start, distance);
-                    Loc::Spot { index: dest }
-                }
-            };
-
-            next_pawns[id] = next_loc;
-
-            // Modify the copy of the positions map
-            // with the new positions of the moving player's
-            // pawns.
-            positions.insert(color, next_pawns);
-        }
-
-        Ok(MoveResult(Board { positions: positions }, bonus))
     }
 }
 
