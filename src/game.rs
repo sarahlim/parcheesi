@@ -160,6 +160,7 @@ impl<'a> Game<'a> {
                 panic!("Don't cheat");
             }
         }
+        
     }
 
     fn is_blockaded(&self, index: usize) -> bool {
@@ -184,7 +185,7 @@ impl<'a> Game<'a> {
             }
             MoveType::MoveMain { start, distance } => {
                 // Pawn is currently at start location in the Main Ring.
-                let current_pawn_loc: Loc = board.get_pawn_loc(&pawn);
+                let current_pawn_loc: Loc = board.get_pawn_loc(&pawn.color,pawn.id);
                 let start_loc: Loc = Loc::Spot { index: start };
                 if current_pawn_loc != start_loc {
                     return false;
@@ -225,7 +226,7 @@ impl<'a> Game<'a> {
             MoveType::MoveHome { start, distance } => {
                 // Main Ring.
                 // Pawn is currently at start location in the Main Ring.
-                let current_pawn_loc: Loc = board.get_pawn_loc(&pawn);
+                let current_pawn_loc: Loc = board.get_pawn_loc(&pawn.color,pawn.id);
                 let start_loc: Loc = Loc::Spot { index: start };
                 if current_pawn_loc != start_loc {
                     return false;
@@ -347,6 +348,24 @@ mod tests {
         fn doubles_penalty(&self) -> () {
             println!("TestPlayer {:?} suffered a doubles penalty", self.color);
         }
+    }
+
+    #[test]
+    /// Test cannot ignore dice roll
+    fn enter_1_4() {
+        let m: MoveType = MoveType::EnterPiece;
+        let p_1 = TestPlayer::new(m.clone(), Color::Green);
+        let mut game: Game = Game {
+            players: map!{ Color::Green => &p_1 },
+            dice: Dice {
+                rolls: vec![1,4],
+                used: Vec::new(),
+            },
+            board: Board::new(),
+        };
+        let (next_board, next_dice) = game.give_turn(Color::Green, &p1);
+        let green_entry = Board::get_entrance(&Color::Green);
+        assert!(next_board.get_pawn_loc(&Color::Green,0) == Loc::Spot { index: green_entry });
     }
 
     #[test]

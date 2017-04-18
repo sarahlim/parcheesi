@@ -4,17 +4,7 @@ use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
 use super::constants::*;
 
-macro_rules! map {
-    ( $( $k:expr => $v:expr ),+ ) => {
-        {
-            let mut temp_map = ::std::collections::BTreeMap::new();
-            $(
-                temp_map.insert($k, $v);
-            )+
-            temp_map
-        }
-    };
-}
+
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the location of a pawn.
@@ -158,6 +148,12 @@ impl Board {
         Ok(MoveResult(Board { positions: positions }, bonus))
     }
 
+    // Takes a move and generates the sequence of board locations
+    // corresponding to the pawn's travel.
+    fn move_path(m: Move) -> Vec<Loc> {     
+        vec![Loc::Nest]
+    }
+    
     // Associated helper function to compute the next (start + 1) location
     // for a pawn's movement, based on its color.
     //
@@ -255,10 +251,10 @@ impl Board {
     }
 
     /// Checks the location of a pawn in the main ring.
-    pub fn get_pawn_loc(&self, pawn: &Pawn) -> Loc {
+    pub fn get_pawn_loc(&self, color: &Color, id: usize) -> Loc {
         if let Some(locs) = self.positions
-               .get(&pawn.color) {
-            locs[pawn.id]
+               .get(color) {
+            locs[id]
         } else {
             panic!("Couldn't get pawn location: couldn't find player with that color")
         }
