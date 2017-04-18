@@ -8,7 +8,7 @@ use super::constants::*;
 
 /// Represents a game instance with connected Players.
 struct Game<'a> {
-    players: BTreeMap<Color, &'a Player>, // Players won't outlive game
+    players: BTreeMap<Color, &'a (Player + 'a)>, // Players won't outlive game
     dice: Dice,
     board: Board,
 }
@@ -112,8 +112,13 @@ impl<'a> Game<'a> {
     ///     are compared to check for cross-turn validity.
     ///     For instance, we can only enforce that blockades don't move
     ///     together if we validate across the entire turn.
-    fn give_turn<F>(&self, color: &Color, player: &Player, roll: F) -> (Board, Dice)
-    where F: Fn(bool) -> (Dice, bool) {
+    fn give_turn<F>(&self,
+                    color: &Color,
+                    player: &Player,
+                    roll: F)
+                    -> (Board, Dice)
+        where F: Fn(bool) -> (Dice, bool)
+    {
         let mut doubles_rolled: i32 = 0;
 
         loop {
@@ -139,7 +144,7 @@ impl<'a> Game<'a> {
             let mut temp_board: Board = self.board.clone();
             let mut temp_dice: Dice = rolled_dice;
             let mut turn_done = false;
-          
+
             while !turn_done {
                 // Let the player choose a move, given the current board
                 // and the available rolls.
@@ -162,7 +167,8 @@ impl<'a> Game<'a> {
                     // Move is invalid, player cheated.
                     panic!("Don't cheat");
                 }
-                let has_valid_moves: bool = Board::has_valid_moves(&temp_board,&temp_dice,color);
+                let has_valid_moves: bool =
+                    Board::has_valid_moves(&temp_board, &temp_dice, color);
                 turn_done = temp_dice.all_used() || !has_valid_moves;
             }
             // call validate turn here
@@ -170,11 +176,11 @@ impl<'a> Game<'a> {
             // ret temp_board, temp_dice
             // else panic!("Don't cheat");
             if !is_doubles {
-                return (temp_board,temp_dice);
+                return (temp_board, temp_dice);
             }
         }
-        (self.board.clone(),self.dice.clone())
-        
+        (self.board.clone(), self.dice.clone())
+
     }
 
     fn is_blockaded(&self, index: usize) -> bool {
@@ -182,8 +188,6 @@ impl<'a> Game<'a> {
             .get_blockades()
             .contains(&Loc::Spot { index: index })
     }
-
-    
 }
 
 
@@ -270,14 +274,19 @@ mod tests {
         let m: MoveType = MoveType::EnterPiece;
         let p_1 = TestPlayer::new(m.clone(), Color::Green);
         let mut game: Game = Game {
-            players: map!{ Color::Green => &p_1 },
-            dice: Dice {
-                rolls: vec![1, 4],
-                used: Vec::new(),
-            },
+            players: map!{ Color::Green => &p_1 as &Player },
+            dice: Dice::new(),
             board: Board::new(),
         };
-        let (next_board, next_dice) = game.give_turn(Color::Green, &p1);
+        let roll_fn = |_| {
+            (Dice {
+                 rolls: vec![1, 4],
+                 used: vec![],
+             },
+             false)
+        };
+        let (next_board, next_dice) =
+            game.give_turn(&Color::Green, &p_1, roll_fn);
         let green_entry = Board::get_entrance(&Color::Green);
         assert!(next_board.get_pawn_loc(&Color::Green, 0) ==
                 Loc::Spot { index: green_entry });
