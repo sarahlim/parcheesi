@@ -51,7 +51,7 @@ type Bonus = usize;
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents a board, containing the positions of all pawns.
 pub struct Board {
-    positions: BTreeMap<Color, PawnLocs>,
+    pub positions: BTreeMap<Color, PawnLocs>,
 }
 
 impl Board {

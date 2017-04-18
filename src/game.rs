@@ -328,4 +328,213 @@ mod tests {
                         .contains_key(clr));
         }
     }
+     #[test]
+    #[should_panic]
+    /// Blockade Test
+    /// Player cannot enter with a blockade on the entry points
+    fn cannot_enter_with_blockade() {
+        let m: MoveType = MoveType::EnterPiece;
+        let p1 = TestPlayer::new(m.clone(), Color::Red);
+        let p2 = TestPlayer::new(m.clone(), Color::Green);
+        let p3 = TestPlayer::new(m.clone(), Color::Yellow);
+        let p4 = TestPlayer::new(m.clone(), Color::Blue);
+        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE },
+                               Loc::Spot { index: RED_ENTRANCE },
+                               Loc::Nest,
+                               Loc::Nest];
+        let mut b0 = Board::new();
+        let roll_fn = |_| {
+            (Dice {
+                 rolls: vec![1, 4],
+                 used: vec![],
+             },
+             false)
+        };
+        b0.positions.clone().insert(Color::Green, green_pawn_locs);
+        let players = [&p1, &p2, &p3, &p4];
+        let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+        let mut game: Game = Game {
+            players: BTreeMap::new(),
+            dice: Dice {
+                rolls: vec![1,4],
+                used: Vec::new(),
+            },
+            board: b0,
+        };
+        for i in 0..4 {
+            let p = players[i];
+            game.register_player(players[i]);
+            assert!(game.players
+                        .contains_key(&colors[i]));
+        }
+        
+        assert!(game.is_blockaded(RED_ENTRANCE));
+        // This should panic because the Red player is trying to enter where there
+        // is a blockade
+        let (board, dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+        //println!("{:#?}, {:#?}",board,dice);
+        // When player tries to enter on blockade with move m, same board is returned
+    }
+    #[test]
+    #[should_panic]
+    /// Blockade Test
+    /// Player cannot put three pawns on one space
+    fn cannot_form_blockade_of_three() {
+        let m: MoveType = MoveType::MoveMain { start: RED_ENTRANCE+6, distance: 1 };
+        let p1 = TestPlayer::new(m.clone(), Color::Green);
+        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+7 },
+                               Loc::Spot { index: RED_ENTRANCE+7 },
+                               Loc::Spot { index: RED_ENTRANCE+6 },
+                               Loc::Nest];
+        let mut b0 = Board::new();
+        b0.positions.insert(Color::Green, green_pawn_locs);
+        let players = [&p1];
+        let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+        let roll_fn = |_| {
+            (Dice {
+                 rolls: vec![1, 4],
+                 used: vec![],
+             },
+             false)
+        };
+        let mut game: Game = Game {
+            players: BTreeMap::new(),
+            dice: Dice {
+                rolls: vec![1,4],
+                used: Vec::new(),
+            },
+            board: b0,
+        };
+        for i in 0..1 {
+            let p = players[i];
+            game.register_player(players[i]);
+            assert!(game.players
+                        .contains_key(&colors[i]));
+        }
+        assert!(game.is_blockaded(RED_ENTRANCE+7));
+        let (board,dice) = game.give_turn(&Color::Green,&p1,roll_fn);
+    }
+
+    #[test]
+    #[should_panic]
+    /// Blockade Test
+    /// Player cannot pass blockade
+    fn cannot_pass_blockade() {
+        let m: MoveType = MoveType::MoveMain { start: RED_ENTRANCE+6, distance: 2 };
+        let p1 = TestPlayer::new(m.clone(), Color::Red);
+        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+7 },
+                               Loc::Spot { index: RED_ENTRANCE+7 },
+                               Loc::Nest,
+                               Loc::Nest];
+        let red_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+6 },
+                             Loc::Nest,
+                             Loc::Nest,
+                             Loc::Nest];
+        let mut b0 = Board::new();
+        b0.positions.insert(Color::Green, green_pawn_locs);
+        b0.positions.insert(Color::Red,red_pawn_locs);
+        let players = [&p1];
+        let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+        let roll_fn = |_| {
+            (Dice {
+                 rolls: vec![2, 4],
+                 used: vec![],
+             },
+             false)
+        };
+        let mut game: Game = Game {
+            players: BTreeMap::new(),
+            dice: Dice {
+                rolls: vec![2,4],
+                used: Vec::new(),
+            },
+            board: b0,
+        };
+        for i in 0..1 {
+            let p = players[i];
+            game.register_player(players[i]);
+            assert!(game.players
+                        .contains_key(&colors[i]));
+        }
+        assert!(game.is_blockaded(RED_ENTRANCE+7));
+        let (board,dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+    }
+    #[test]
+    #[should_panic]
+    /// Blockade Test
+    /// Player cannot pass blockade of own color
+    fn cannot_pass_blockade_of_own_color() {
+        let m: MoveType = MoveType::MoveMain { start: RED_ENTRANCE+6, distance: 2 };
+        let p1 = TestPlayer::new(m.clone(), Color::Red);
+        let red_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+7 },
+                               Loc::Spot { index: RED_ENTRANCE+7 },
+                               Loc::Nest,
+                               Loc::Nest];
+        let mut b0 = Board::new();
+        b0.positions.insert(Color::Red, red_pawn_locs);
+        let players = [&p1];
+        let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+        let roll_fn = |_| {
+            (Dice {
+                 rolls: vec![2, 4],
+                 used: vec![],
+             },
+             false)
+        };
+        let mut game: Game = Game {
+            players: BTreeMap::new(),
+            dice: Dice {
+                rolls: vec![2,4],
+                used: Vec::new(),
+            },
+            board: b0,
+        };
+        for i in 0..1 {
+            let p = players[i];
+            game.register_player(players[i]);
+            assert!(game.players
+                        .contains_key(&colors[i]));
+        }
+        assert!(game.is_blockaded(RED_ENTRANCE+7));
+        let (board,dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+    }
+    #[test]
+    #[should_panic]
+    /// Blockade Test
+    /// A red player has their pawns in their home row, and attempts 
+    /// to move past the blockade. Should panic.
+    fn cannot_pass_blockade_in_home_row() {let m: MoveType = MoveType::MoveMain { start: RED_HOME_ROW, distance: 2 };
+        let p1 = TestPlayer::new(m.clone(), Color::Red);
+        let red_pawn_locs = [Loc::Spot { index: RED_HOME_ROW+1 },
+                             Loc::Spot { index: RED_HOME_ROW+1 },
+                             Loc::Spot { index: RED_HOME_ROW },
+                             Loc::Nest];
+        let mut b0 = Board::new();
+        b0.positions.insert(Color::Red, red_pawn_locs);
+        let players = [&p1];
+        let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
+        let roll_fn = |_| {
+            (Dice {
+                 rolls: vec![2, 4],
+                 used: vec![],
+             },
+             false)
+        };
+        let mut game: Game = Game {
+            players: BTreeMap::new(),
+            dice: Dice {
+                rolls: vec![2,4],
+                used: Vec::new(),
+            },
+            board: b0,
+        };
+        for i in 0..1 {
+            let p = players[i];
+            game.register_player(players[i]);
+            assert!(game.players
+                        .contains_key(&colors[i]));
+        }
+        assert!(game.is_blockaded(RED_HOME_ROW+1));
+        let (board,dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+    }
 }
