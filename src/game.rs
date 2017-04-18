@@ -143,7 +143,8 @@ impl<'a> Game<'a> {
             // copy of the board and game state.
             let mut temp_board: Board = self.board.clone();
             let mut temp_dice: Dice = rolled_dice;
-            let mut turn_done = false;
+            let mut turn_done =
+                Board::has_valid_moves(&temp_board, &temp_dice, color);
 
             while !turn_done {
                 // Let the player choose a move, given the current board
@@ -155,6 +156,7 @@ impl<'a> Game<'a> {
                 if Board::is_valid_move(&temp_board, &temp_dice, &chosen_move) {
                     if let Ok(MoveResult(next_board, bonus)) =
                         temp_board.handle_move(chosen_move) {
+
                         // Update temp_board, and add bonus if it exists.
                         temp_board = next_board;
                         if let Some(amt) = bonus {
@@ -165,13 +167,19 @@ impl<'a> Game<'a> {
                     }
                 } else {
                     // Move is invalid, player cheated.
-                    panic!("Don't cheat");
+                    panic!("Invalid move");
                 }
-                let has_valid_moves: bool =
+
+                turn_done =
                     Board::has_valid_moves(&temp_board, &temp_dice, color);
-                turn_done = temp_dice.all_used() || !has_valid_moves;
             }
-            // call validate turn here
+
+            // Now we want to validate the entire turn.
+            if !self.board
+                    .is_valid_turn(&temp_board, &temp_dice, *color) {
+                panic!("Invalid turn");
+            }
+
             // if self.is_valid_turn(temp_board,temp_dice)
             // ret temp_board, temp_dice
             // else panic!("Don't cheat");
@@ -179,8 +187,8 @@ impl<'a> Game<'a> {
                 return (temp_board, temp_dice);
             }
         }
-        (self.board.clone(), self.dice.clone())
 
+        unreachable!();
     }
 
     fn is_blockaded(&self, index: usize) -> bool {

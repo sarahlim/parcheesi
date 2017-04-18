@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
 use super::constants::*;
-use super::dice::{Dice};
+use super::dice::Dice;
 
 
 
@@ -149,28 +149,94 @@ impl Board {
         Ok(MoveResult(Board { positions: positions }, bonus))
     }
 
+    /// Determines whether the turn resulting in the given board is valid
+    /// with respect to the current board.
+    pub fn is_valid_turn(&self,
+                         end: &Board,
+                         dice: &Dice,
+                         color: Color)
+                         -> bool {
+        // Check no valid moves remaining.
+        if Board::has_valid_moves(end, dice, &color) {
+            return false;
+        }
 
-    
+        // Can't move blockades together.
+        if let Some(pawn_locs) = self.positions.get(&color) {
+            // pawn_locs = []
+            let blockades: Vec<Loc> = self.get_blockades();
+
+            for &blockade_loc in blockades.iter() {
+                // Get the ids of the pawns that formed the blockade
+                // at this location.
+                let blockade_pawn_ids = pawn_locs
+                    .iter()
+                    .cloned()
+                    .enumerate()
+                    .filter(|&(_, loc)| loc == blockade_loc)
+                    .collect::<Vec<(usize, Loc)>>();
+
+                // If the new locations of the pawns are the same,
+                // the turn is invalid.
+                let new_loc_1 =
+                    end.get_pawn_loc(&color, blockade_pawn_ids[0].0);
+                let new_loc_2 =
+                    end.get_pawn_loc(&color, blockade_pawn_ids[1].0);
+
+                if new_loc_1 == new_loc_2 {
+                    return false;
+                }
+            }
+
+            return true;
+        } else {
+            panic!("Couldn't get pawns for color");
+        }
+    }
+
+    /// Determines whether the given board, dice, and color has any valid moves left.
     pub fn has_valid_moves(board: &Board, dice: &Dice, color: &Color) -> bool {
+        if dice.all_used() {
+            return false;
+        }
         if let Some(pawn_locs) = board.positions.get(color) {
-            let valid_for_roll = |&r| pawn_locs.iter()
-                .enumerate()
-                .any(|(i, loc)| {
-                    let m_type: MoveType = match *loc {
-                        Loc::Spot { index } => if Board::is_home_row(*color,Loc::Spot { index: index }) {
-                            MoveType::MoveHome { start: index, distance: r }
-                        } else {
-                            MoveType::MoveMain { start: index, distance: r }
-                        },
-                        _ => return false,
-                    };
-                    let m = Move {
-                        m_type: m_type,
-                        pawn: Pawn { color: *color, id: i },
-                    };
-                    Board::is_valid_move(board, dice, &m)
-                });
-            dice.rolls.iter().any(valid_for_roll)
+            let valid_for_roll = |&r| {
+                pawn_locs
+                    .iter()
+                    .enumerate()
+                    .any(|(i, loc)| {
+                        let m_type: MoveType = match *loc {
+                            Loc::Spot { index } => {
+                                if Board::is_home_row(*color,
+                                                      Loc::Spot {
+                                                          index: index,
+                                                      }) {
+                                    MoveType::MoveHome {
+                                        start: index,
+                                        distance: r,
+                                    }
+                                } else {
+                                    MoveType::MoveMain {
+                                        start: index,
+                                        distance: r,
+                                    }
+                                }
+                            }
+                            _ => return false,
+                        };
+                        let m = Move {
+                            m_type: m_type,
+                            pawn: Pawn {
+                                color: *color,
+                                id: i,
+                            },
+                        };
+                        Board::is_valid_move(board, dice, &m)
+                    })
+            };
+            dice.rolls
+                .iter()
+                .any(valid_for_roll)
         } else {
             panic!("Couldn't get pawn locations for player");
         }
@@ -401,9 +467,9 @@ impl Board {
             panic!("Couldn't find pawns for given player");
         }
     }
-    
+
     /// Associated function to check whether a Loc is home row.
-    pub fn is_home_row(color: Color,loc: Loc) -> bool {
+    pub fn is_home_row(color: Color, loc: Loc) -> bool {
         if let Loc::Spot { index } = loc {
             index >= Board::get_home_row(&color)
         } else {
