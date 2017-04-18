@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
 use super::constants::*;
+use super::dice::{Dice};
 
 
 
@@ -148,12 +149,143 @@ impl Board {
         Ok(MoveResult(Board { positions: positions }, bonus))
     }
 
+
+    
+    pub fn has_valid_moves(board: &Board, dice: &Dice, color: &Color) -> bool {
+        if let Some(pawn_locs) = board.positions.get(color) {
+            let valid_for_roll = |&r| pawn_locs.iter()
+                .enumerate()
+                .any(|(i, loc)| {
+                    let m_type: MoveType = match *loc {
+                        Loc::Spot { index } => if Board::is_home_row(*color,Loc::Spot { index: index }) {
+                            MoveType::MoveHome { start: index, distance: r }
+                        } else {
+                            MoveType::MoveMain { start: index, distance: r }
+                        },
+                        _ => return false,
+                    };
+                    let m = Move {
+                        m_type: m_type,
+                        pawn: Pawn { color: *color, id: i },
+                    };
+                    Board::is_valid_move(board, dice, &m)
+                });
+            dice.rolls.iter().any(valid_for_roll)
+        } else {
+            panic!("Couldn't get pawn locations for player");
+        }
+    }
+
+    pub fn is_valid_move(board: &Board, dice: &Dice, m: &Move) -> bool {
+        let Move { pawn, m_type } = *m;
+        let Pawn { color, id } = pawn;
+
+        match m.m_type {
+            MoveType::EnterPiece => {
+                let all_pawns_entered = board.all_pawns_entered(&color);
+                let home_row_entrance = Board::get_home_row(&color);
+                let is_blockade =
+                    board
+                        .get_blockades()
+                        .contains(&Loc::Spot { index: home_row_entrance });
+                all_pawns_entered && is_blockade
+            }
+            MoveType::MoveMain { start, distance } => {
+                // Pawn is currently at start location in the Main Ring.
+                let current_pawn_loc: Loc =
+                    board.get_pawn_loc(&pawn.color, pawn.id);
+                let start_loc: Loc = Loc::Spot { index: start };
+                if current_pawn_loc != start_loc {
+                    return false;
+                }
+
+                // Chosen move distance is a valid mini-move.
+                if !dice.contains(&distance) {
+                    return false;
+                }
+
+                // Don't let the pawn go through any blockades on their
+                // way to the destination.
+                let blockades: Vec<Loc> = board.get_blockades();
+                for i in 0..distance {
+                    let end = Board::get_exit(&color);
+                    // pawns should wrap into their home row
+                    // We have to this because we are using absolute addressing
+                    // and some pawn's home rows may not be the next number
+                    // after the end of the board
+                    // If red is at 60, and it rolls a 5
+                    // it would proceed 61,62,63,68,69
+                    //                           ^ is the home row entrance
+                    let is_past_end = start + i >
+                                      (Board::get_entrance(&color) -
+                                       EXIT_TO_ENTRANCE) %
+                                      BOARD_SIZE;
+                    let offset = if is_past_end { end } else { start };
+
+                    let current_spot: Loc = Loc::Spot { index: offset + i };
+                    let blockades: Vec<Loc> = board.get_blockades();
+                    if blockades.contains(&current_spot) {
+                        return false;
+                    }
+                }
+                true
+            }
+
+            MoveType::MoveHome { start, distance } => {
+                // Main Ring.
+                // Pawn is currently at start location in the Main Ring.
+                let current_pawn_loc: Loc =
+                    board.get_pawn_loc(&pawn.color, pawn.id);
+                let start_loc: Loc = Loc::Spot { index: start };
+                if current_pawn_loc != start_loc {
+                    return false;
+                }
+
+                // Chosen move distance is a valid mini-move.
+                if !dice.contains(&distance) {
+                    return false;
+                }
+
+                // Don't let the pawn go through any blockades on their
+                // way to the destination.
+                for i in 0..distance {
+                    let end = Board::get_exit(&color);
+                    // pawns should wrap into their home row
+                    // We have to this because we are using absolute addressing
+                    // and some pawn's home rows may not be the next number
+                    // after the end of the board
+                    // If red is at 60, and it rolls a 5
+                    // it would proceed 61,62,63,68,69
+                    //                           ^ is the home row entrance
+                    let is_past_end = start + i >
+                                      (Board::get_entrance(&color) -
+                                       EXIT_TO_ENTRANCE) %
+                                      BOARD_SIZE;
+                    let offset = if is_past_end { end } else { start };
+                    let current_spot: Loc = Loc::Spot { index: offset + i };
+                    let blockades: Vec<Loc> = board.get_blockades();
+                    if blockades.contains(&current_spot) {
+                        return false;
+                    }
+                }
+
+                // Allows us to see if the move is overshooting the home
+                let overshoot = Board::get_home_row(&color) + HOME_ROW_LENGTH;
+                if start + distance > overshoot {
+                    return false;
+                }
+
+                true
+            }
+        }
+    }
+
     // Takes a move and generates the sequence of board locations
     // corresponding to the pawn's travel.
-    fn move_path(m: Move) -> Vec<Loc> {     
+    fn move_path(m: Move) -> Vec<Loc> {
         vec![Loc::Nest]
     }
-    
+
     // Associated helper function to compute the next (start + 1) location
     // for a pawn's movement, based on its color.
     //
@@ -252,8 +384,7 @@ impl Board {
 
     /// Checks the location of a pawn in the main ring.
     pub fn get_pawn_loc(&self, color: &Color, id: usize) -> Loc {
-        if let Some(locs) = self.positions
-               .get(color) {
+        if let Some(locs) = self.positions.get(color) {
             locs[id]
         } else {
             panic!("Couldn't get pawn location: couldn't find player with that color")
@@ -270,6 +401,15 @@ impl Board {
             panic!("Couldn't find pawns for given player");
         }
     }
+    
+    /// Associated function to check whether a Loc is home row.
+    pub fn is_home_row(color: Color,loc: Loc) -> bool {
+        if let Loc::Spot { index } = loc {
+            index >= Board::get_home_row(&color)
+        } else {
+            false
+        }
+    }
 
     /// Associated function to check whether a Loc is a safety spot.
     pub fn is_safety(loc: Loc) -> bool {
@@ -278,17 +418,6 @@ impl Board {
         } else {
             false
         }
-    }
-
-    pub fn is_home_row(&self, color: Color, location: Loc) -> bool {
-        let home_row_entrance_index = Board::get_home_row(&color);
-
-        let current_location = match location {
-            Loc::Spot { index } => index,
-            _ => panic!(" "),
-        };
-
-        current_location < home_row_entrance_index + HOME_ROW_LENGTH
     }
 
     /// Associated function to return the exit index for a player.

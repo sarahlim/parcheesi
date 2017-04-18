@@ -61,10 +61,11 @@ impl<'a> Game<'a> {
             for (clr, p) in self.players.iter() {
                 // TODO: How to make this work with mutable references?
                 // self.give_turn(clr, *p);
+                self.give_turn(clr, *p, Dice::roll);
             }
         }
 
-        // When game is over, print an announcement.
+        // When Game is over, print an announcement.
         println!("Game over.");
     }
 
@@ -111,7 +112,8 @@ impl<'a> Game<'a> {
     ///     are compared to check for cross-turn validity.
     ///     For instance, we can only enforce that blockades don't move
     ///     together if we validate across the entire turn.
-    fn give_turn(&mut self, color: &Color, player: &Player) -> () {
+    fn give_turn<F>(&self, color: &Color, player: &Player, roll: F) -> (Board, Dice)
+    where F: Fn(bool) -> (Dice, bool) {
         let mut doubles_rolled: i32 = 0;
 
         loop {
@@ -119,9 +121,8 @@ impl<'a> Game<'a> {
             // This determines how the dice roll is handled.
             let give_doubles_bonus: bool = self.board
                 .all_pawns_entered(color);
-            let (dice, is_doubles): (Dice, bool) =
-                Dice::roll(give_doubles_bonus);
-            self.dice = dice;
+            let (rolled_dice, is_doubles): (Dice, bool) =
+                roll(give_doubles_bonus);
 
             if is_doubles {
                 doubles_rolled += 1;
@@ -136,30 +137,43 @@ impl<'a> Game<'a> {
             // state, we capture and play individual moves on a
             // copy of the board and game state.
             let mut temp_board: Board = self.board.clone();
-            let mut temp_dice: Dice = self.dice.clone();
+            let mut temp_dice: Dice = rolled_dice;
+            let mut turn_done = false;
+          
+            while !turn_done {
+                // Let the player choose a move, given the current board
+                // and the available rolls.
+                // Validation occurs between moves, and between turns.
+                let chosen_move: Move =
+                    player.do_move(temp_board.clone(), temp_dice.clone());
 
-            // Let the player choose a move, given the current board
-            // and the available rolls.
-            // Validation occurs between moves, and between turns.
-            let chosen_move: Move =
-                player.do_move(temp_board.clone(), temp_dice.clone());
-
-            if self.is_valid_move(&temp_board, &temp_dice, &chosen_move) {
-                if let Ok(MoveResult(next_board, bonus)) =
-                    temp_board.handle_move(chosen_move) {
-                    // Update temp_board, and add bonus if it exists.
-                    temp_board = next_board;
-                    if let Some(amt) = bonus {
-                        temp_dice = temp_dice.give_bonus(amt);
+                if Board::is_valid_move(&temp_board, &temp_dice, &chosen_move) {
+                    if let Ok(MoveResult(next_board, bonus)) =
+                        temp_board.handle_move(chosen_move) {
+                        // Update temp_board, and add bonus if it exists.
+                        temp_board = next_board;
+                        if let Some(amt) = bonus {
+                            temp_dice = temp_dice.give_bonus(amt);
+                        }
+                    } else {
+                        panic!("Move failed");
                     }
                 } else {
-                    panic!("Move failed");
+                    // Move is invalid, player cheated.
+                    panic!("Don't cheat");
                 }
-            } else {
-                // Move is invalid, player cheated.
-                panic!("Don't cheat");
+                let has_valid_moves: bool = Board::has_valid_moves(&temp_board,&temp_dice,color);
+                turn_done = temp_dice.all_used() || !has_valid_moves;
+            }
+            // call validate turn here
+            // if self.is_valid_turn(temp_board,temp_dice)
+            // ret temp_board, temp_dice
+            // else panic!("Don't cheat");
+            if !is_doubles {
+                return (temp_board,temp_dice);
             }
         }
+        (self.board.clone(),self.dice.clone())
         
     }
 
@@ -169,107 +183,7 @@ impl<'a> Game<'a> {
             .contains(&Loc::Spot { index: index })
     }
 
-    fn is_valid_move(&self, board: &Board, dice: &Dice, m: &Move) -> bool {
-        let Move { pawn, m_type } = *m;
-        let Pawn { color, id } = pawn;
-
-        match m.m_type {
-            MoveType::EnterPiece => {
-                let all_pawns_entered = board.all_pawns_entered(&color);
-                let home_row_entrance = Board::get_home_row(&color);
-                let is_blockade =
-                    board
-                        .get_blockades()
-                        .contains(&Loc::Spot { index: home_row_entrance });
-                all_pawns_entered && is_blockade
-            }
-            MoveType::MoveMain { start, distance } => {
-                // Pawn is currently at start location in the Main Ring.
-                let current_pawn_loc: Loc = board.get_pawn_loc(&pawn.color,pawn.id);
-                let start_loc: Loc = Loc::Spot { index: start };
-                if current_pawn_loc != start_loc {
-                    return false;
-                }
-
-                // Chosen move distance is a valid mini-move.
-                if !dice.contains(&distance) {
-                    return false;
-                }
-
-                // Don't let the pawn go through any blockades on their
-                // way to the destination.
-                let blockades: Vec<Loc> = board.get_blockades();
-                for i in 0..distance {
-                    let end = Board::get_exit(&color);
-                    // pawns should wrap into their home row
-                    // We have to this because we are using absolute addressing
-                    // and some pawn's home rows may not be the next number
-                    // after the end of the board
-                    // If red is at 60, and it rolls a 5
-                    // it would proceed 61,62,63,68,69
-                    //                           ^ is the home row entrance
-                    let is_past_end = start + i >
-                                      (Board::get_entrance(&color) -
-                                       EXIT_TO_ENTRANCE) %
-                                      BOARD_SIZE;
-                    let offset = if is_past_end { end } else { start };
-
-                    let current_spot: Loc = Loc::Spot { index: offset + i };
-                    let blockades: Vec<Loc> = board.get_blockades();
-                    if blockades.contains(&current_spot) {
-                        return false;
-                    }
-                }
-                true
-            }
-
-            MoveType::MoveHome { start, distance } => {
-                // Main Ring.
-                // Pawn is currently at start location in the Main Ring.
-                let current_pawn_loc: Loc = board.get_pawn_loc(&pawn.color,pawn.id);
-                let start_loc: Loc = Loc::Spot { index: start };
-                if current_pawn_loc != start_loc {
-                    return false;
-                }
-
-                // Chosen move distance is a valid mini-move.
-                if !dice.contains(&distance) {
-                    return false;
-                }
-
-                // Don't let the pawn go through any blockades on their
-                // way to the destination.
-                for i in 0..distance {
-                    let end = Board::get_exit(&color);
-                    // pawns should wrap into their home row
-                    // We have to this because we are using absolute addressing
-                    // and some pawn's home rows may not be the next number
-                    // after the end of the board
-                    // If red is at 60, and it rolls a 5
-                    // it would proceed 61,62,63,68,69
-                    //                           ^ is the home row entrance
-                    let is_past_end = start + i >
-                                      (Board::get_entrance(&color) -
-                                       EXIT_TO_ENTRANCE) %
-                                      BOARD_SIZE;
-                    let offset = if is_past_end { end } else { start };
-                    let current_spot: Loc = Loc::Spot { index: offset + i };
-                    let blockades: Vec<Loc> = board.get_blockades();
-                    if blockades.contains(&current_spot) {
-                        return false;
-                    }
-                }
-
-                // Allows us to see if the move is overshooting the home
-                let overshoot = Board::get_home_row(&color) + HOME_ROW_LENGTH;
-                if start + distance > overshoot {
-                    return false;
-                }
-
-                true
-            }
-        }
-    }
+    
 }
 
 
@@ -358,14 +272,15 @@ mod tests {
         let mut game: Game = Game {
             players: map!{ Color::Green => &p_1 },
             dice: Dice {
-                rolls: vec![1,4],
+                rolls: vec![1, 4],
                 used: Vec::new(),
             },
             board: Board::new(),
         };
         let (next_board, next_dice) = game.give_turn(Color::Green, &p1);
         let green_entry = Board::get_entrance(&Color::Green);
-        assert!(next_board.get_pawn_loc(&Color::Green,0) == Loc::Spot { index: green_entry });
+        assert!(next_board.get_pawn_loc(&Color::Green, 0) ==
+                Loc::Spot { index: green_entry });
     }
 
     #[test]

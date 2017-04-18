@@ -126,6 +126,11 @@ impl Dice {
         }
     }
 
+    /// Returns true if there are no available moves
+    pub fn all_used(&self) -> bool {
+        self.rolls.is_empty()
+    }
+
 
     /// Checks whether a given mini-move distance is in the
     /// list of valid moves.

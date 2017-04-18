@@ -1,7 +1,6 @@
 #[macro_use]
 mod macros;
 
-
 mod board;
 mod game;
 mod dice;
