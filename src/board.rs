@@ -160,7 +160,6 @@ impl Board {
         if Board::has_valid_moves(end, dice, &color) {
             return false;
         }
-
         // Can't move blockades together.
         if let Some(pawn_locs) = self.positions.get(&color) {
             // pawn_locs = []
@@ -187,14 +186,13 @@ impl Board {
                     return false;
                 }
             }
-
             return true;
         } else {
             panic!("Couldn't get pawns for color");
         }
     }
 
-    /// Determines whether the given board, dice, and color has any valid moves left.;
+    /// Determines whether the given board, dice, and color has any valid moves left.
     pub fn has_valid_moves(board: &Board, dice: &Dice, color: &Color) -> bool {
         if dice.all_used() {
             return false;

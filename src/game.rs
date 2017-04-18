@@ -167,7 +167,6 @@ impl<'a> Game<'a> {
                     Board::has_valid_moves(&temp_board, &temp_dice, color);
             }
 
-            // Turn is over.
             // Now we want to validate the entire turn.
             if !self.board
                     .is_valid_turn(&temp_board, &temp_dice, *color) {
