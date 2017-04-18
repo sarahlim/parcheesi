@@ -69,16 +69,6 @@ impl<'a> Game<'a> {
         println!("Game over.");
     }
 
-    /// Communication layer to get a player's choice of move.
-    fn get_player_move(&self, clr: &Color) -> Result<Move, &'static str> {
-        if let Some(&player) = self.players.get(clr) {
-            let m: Move = player.do_move(self.board.clone(), self.dice.clone());
-            Ok(m)
-        } else {
-            Err("No player with color")
-        }
-    }
-
     /// Inform player of a doubles penalty, and administer any changes
     /// to the board.
     fn give_doubles_penalty(&self, color: &Color) {
@@ -143,44 +133,56 @@ impl<'a> Game<'a> {
             // copy of the board and game state.
             let mut temp_board: Board = self.board.clone();
             let mut temp_dice: Dice = rolled_dice;
-            let mut turn_done = false;
+            let mut turn_done =
+                Board::has_valid_moves(&temp_board, &temp_dice, color);
 
+            // This inner loop manages mini-moves. The loop breaks when there
+            // are no valid mini-moves left for the player.
             while !turn_done {
-                // Let the player choose a move, given the current board
-                // and the available rolls.
-                // Validation occurs between moves, and between turns.
                 let chosen_move: Move =
                     player.do_move(temp_board.clone(), temp_dice.clone());
 
                 if Board::is_valid_move(&temp_board, &temp_dice, &chosen_move) {
-                    if let Ok(MoveResult(next_board, bonus)) =
-                        temp_board.handle_move(chosen_move) {
-                        // Update temp_board, and add bonus if it exists.
-                        temp_board = next_board;
-                        if let Some(amt) = bonus {
-                            temp_dice = temp_dice.give_bonus(amt);
+                    let move_result: Result<MoveResult,
+                                            &'static str> =
+                        temp_board.handle_move(chosen_move);
+
+                    match move_result {
+                        Ok(MoveResult(next_board, bonus)) => {
+                            // Update temp_board, and add bonus if it exists.
+                            temp_board = next_board;
+                            if let Some(amt) = bonus {
+                                temp_dice = temp_dice.give_bonus(amt);
+                            }
                         }
-                    } else {
-                        panic!("Move failed");
+                        Err(e) => panic!("Move failed"),
                     }
                 } else {
                     // Move is invalid, player cheated.
-                    panic!("Don't cheat");
+                    panic!("Invalid move");
                 }
-                let has_valid_moves: bool =
+
+                // Check whether there are valid moves left.
+                turn_done =
                     Board::has_valid_moves(&temp_board, &temp_dice, color);
-                turn_done = temp_dice.all_used() || !has_valid_moves;
             }
-            // call validate turn here
-            // if self.is_valid_turn(temp_board,temp_dice)
-            // ret temp_board, temp_dice
-            // else panic!("Don't cheat");
+
+            // Turn is over.
+            // Now we want to validate the entire turn.
+            if !self.board
+                    .is_valid_turn(&temp_board, &temp_dice, *color) {
+                panic!("Invalid turn");
+            }
+
+            // If the player rolled doubles, give another turn.
+            // Otherwise, return the temp board and dice.
             if !is_doubles {
                 return (temp_board, temp_dice);
             }
         }
-        (self.board.clone(), self.dice.clone())
 
+        // this should never happen...
+        unreachable!();
     }
 
     fn is_blockaded(&self, index: usize) -> bool {
