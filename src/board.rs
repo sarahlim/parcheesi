@@ -70,6 +70,25 @@ impl Board {
         Board { positions: positions }
     }
 
+    /// Alternate constructor for a board, which takes a partial map of positions
+    /// and merges with the default board.
+    pub fn from(posns: BoardPosnDiff) -> Board {
+        let mut positions: BTreeMap<Color, PawnLocs> = BTreeMap::new();
+        let init_pawn_locs: PawnLocs = [Loc::Nest; 4];
+
+        for clr in COLORS.iter() {
+            for i in 0..4 {
+                positions.insert(clr.clone(), init_pawn_locs.clone());
+            }
+        }
+
+        for (clr, &locs) in posns.iter() {
+            positions.insert(clr.clone(), locs);
+        }
+
+        Board { positions: positions }
+    }
+
     /// Takes a move and returns a new board.
     pub fn handle_move(&self, m: Move) -> Result<MoveResult, &'static str> {
         let mut positions = self.positions.clone();
