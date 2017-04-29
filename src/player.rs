@@ -1,5 +1,5 @@
 use super::board::{Color, Board};
-use super::game::{Move};
+use super::game::Move;
 use super::dice::Dice;
 
 /// Generic Player trait provides an interface for the
@@ -8,9 +8,9 @@ pub trait Player {
     /// Inform the Player that a game has started, and
     /// what color the player is.
     fn start_game(&self, color: Color) -> () {
-        println!("The game is start {:?}",color)
+        println!("The game is start {:?}", color)
     }
-        
+
 
     /// Ask the player what move they want to make.
     fn do_move(&self, board: Board, dice: Dice) -> Vec<Move>;
