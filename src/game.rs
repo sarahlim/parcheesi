@@ -543,5 +543,60 @@ mod tests {
         }
         assert!(game.is_blockaded(RED_HOME_ROW + 1));
         let (board, dice) = game.give_turn(&Color::Red, &p1, roll_fn);
+
+    }
+
+    #[test]
+    #[ignore]
+    fn cannot_move_either_piece_blockade() {
+        // [red: 66, 66]
+        // [green: 64, 65]
+        // Dice: [3, 4]
+    }
+
+    #[test]
+    #[ignore]
+    fn only_first_die_blockade() {
+        // [red: 66, 66]
+        // [green: 64, 65]
+        // Dice: [1, 6]
+    }
+
+    #[test]
+    #[ignore]
+    fn only_second_die_blockade() {
+        // [red: 66, 66]
+        // [green: 64, 65]
+        // Dice: [6, 1]
+        // can't move either piece by 6; red is blockading
+        // can move 64 by 1; forms a blockade on 65
+    }
+
+    #[test]
+    #[should_panic]
+    #[ignore]
+    fn bop_dont_take_bonus() {
+        // [red: 66]
+        // [green: 65, 55]
+        // Dice: [1]
+        // should be able to move 55 by 20
+    }
+
+    #[test]
+    #[should_panic]
+    #[ignore]
+    fn move_home_dont_take_bonus() {
+        // [green: 404, 55]
+        // Dice: [3]
+        // should be able to move 55 by 10
+    }
+
+    #[test]
+    #[ignore]
+    fn move_one_die_to_avoid_moving_blockade_together() {
+        // [green: 57, 57]
+        // Dice: [3, 3]
+        // can only move one of the pawns by 3
+
     }
 }

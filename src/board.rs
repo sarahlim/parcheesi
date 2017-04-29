@@ -851,4 +851,114 @@ mod tests {
         move_tester(b0, move_four, result.clone(), None);
     }
 
+
+    #[test]
+    fn move_from_entrance() {
+        // ['red', 4, 5, 9, 'enter and move 5'],
+        // ['green', 55, 5, 60, 'enter and move 5'],
+        // ['yellow', 38, 5, 43, 'enter and move 5\n\n'],
+        // ['blue', 21, 5, 26, 'enter and move 5\n\n'],
+
+        let start_indices = [4, 21, 38, 55];
+        let end_indices = [9, 26, 43, 60];
+        let posns = map!{
+            Color::Red => [Loc::Spot { index: 4 }, Loc::Nest, Loc::Nest, Loc::Nest],
+            Color::Blue => [Loc::Spot { index: 21 }, Loc::Nest, Loc::Nest, Loc::Nest],
+            Color::Yellow => [Loc::Spot { index: 38 }, Loc::Nest, Loc::Nest, Loc::Nest],
+            Color::Green => [Loc::Spot { index: 55 }, Loc::Nest, Loc::Nest, Loc::Nest]
+        };
+        let board = Board::from(posns);
+        let moves = COLORS
+            .iter()
+            .enumerate()
+            .map(|(i, color)| {
+                Move {
+                    m_type: MoveType::MoveMain {
+                        start: start_indices[i],
+                        distance: 5,
+                    },
+                    pawn: Pawn {
+                        id: 0,
+                        color: *color,
+                    },
+                }
+            });
+        let dice = Dice {
+            rolls: vec![5],
+            used: vec![],
+        };
+
+        assert!(moves.all(|mv| Board::is_valid_move(&board, &dice, &mv)));
+    }
+
+    #[test]
+    #[ignore]
+    fn main_ring_wrap_index() {
+        // ['blue', 66, 5, 3, 'move 5 on main ring, wrap around'],
+        // ['green', 66, 5, 3, 'move 5 on main ring, wrap around'],
+        // ['yellow', 64, 5, 1, 'move 5 on main ring, wrap around\n\n'],
+    }
+
+    #[test]
+    #[ignore]
+    fn main_ring_to_home_row() {
+        // ['red', 66, 5, 103, 'move from main ring to home row'],
+        // ['yellow', 33, 1, 300, 'move from main ring to home row'],
+        // ['green', 45, 6, 400, 'move from main ring to home row'],
+        // ['blue', 13, 6, 202, 'move from main ring to home row\n\n'],
+    }
+
+    #[test]
+    #[ignore]
+    fn main_ring_bonus() {
+        // ['yellow', 38, 10, 48, 'take a 10 point bonus on the main ring\n\n'],
+    }
+
+
+    #[test]
+    #[ignore]
+    fn move_within_home_row() {
+        // ['red', 100, 5, 105, 'move legally within home row'],
+        // ['green', 400, 3, 403, 'move legally within home row\n\n'],
+        // ['yellow', 301, 6, 'Home', 'move legally within home row\n\n'],
+        // ['blue', 203, 4, 'Home', 'move legally within home row\n\n'],
+    }
+
+    #[test]
+    #[should_panic]
+    #[ignore]
+    fn cannot_overshoot_home_from_home_row() {
+        // ['red', 100, 20, 'Bad', 'move illegally within home row'],
+        // ['green', 404, 6, 'Bad', 'move illegally within home row\n\n'],
+        // ['yellow', 304, 6, 'Bad', 'move illegally within home row\n\n'],
+        // ['blue', 203, 5, 'Bad', 'move illegally within home row\n\n'],
+    }
+
+
+    #[test]
+    #[ignore]
+    #[should_panic]
+    fn cannot_overshoot_home_with_bonus() {
+        // ['red', 64, 20, 'Bad', 'wrap illegally into home row'],
+        // ['green', 49, 10, 'Bad', 'wrap illegally into home row\n\n'],
+        // ['yellow', 28, 20, 'Bad', 'wrap illegally into home row\n\n'],
+        // ['blue', 16, 10, 'Bad', 'wrap illegally into home row\n\n'],
+    }
+
+
+    #[test]
+    #[ignore]
+    fn main_to_home_row_with_bonus() {
+        // ['yellow', 30, 10, 306, 'take a 10 point bonus and wrap to home row\n\n'],
+        // ['red', 64, 10, 106, 'take a 10 point bonus and wrap to home row\n\n'],
+        // ['blue', 1, 20, 204, 'take a 20 point bonus and wrap to home row\n\n'],
+        // ['green', 36, 20, 405, 'take a 20 point bonus and wrap to home row\n\n'],
+    }
+
+
+    #[test]
+    #[ignore]
+    fn main_to_home_with_bonus() {
+        // ['blue', 4, 20, 'Home', 'take a 20 bonus and land at home'],
+    }
 }
