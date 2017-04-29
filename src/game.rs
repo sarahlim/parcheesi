@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
 use std::collections::BTreeMap;
-
+use super::player::Player;
 use super::dice::Dice;
 use super::board::{Color, Board, Pawn, Loc, MoveResult};
 use super::constants::*;
@@ -139,29 +139,32 @@ impl<'a> Game<'a> {
             // This inner loop manages mini-moves. The loop breaks when there
             // are no valid mini-moves left for the player.
             while !turn_done {
-                let chosen_move: Move =
+                let mut chosen_moves: Vec<Move> =
                     player.do_move(temp_board.clone(), temp_dice.clone());
 
-                if Board::is_valid_move(&temp_board, &temp_dice, &chosen_move) {
-                    let move_result: Result<MoveResult,
+                if let Some(chosen_move) = chosen_moves.pop() {
+                    if Board::is_valid_move(&temp_board,
+                                            &temp_dice,
+                                            &chosen_move) {
+                        let move_result: Result<MoveResult,
                                             &'static str> =
                         temp_board.handle_move(chosen_move);
 
-                    match move_result {
-                        Ok(MoveResult(next_board, bonus)) => {
-                            // Update temp_board, and add bonus if it exists.
-                            temp_board = next_board;
-                            if let Some(amt) = bonus {
-                                temp_dice = temp_dice.give_bonus(amt);
+                        match move_result {
+                            Ok(MoveResult(next_board, bonus)) => {
+                                // Update temp_board, and add bonus if it exists.
+                                temp_board = next_board;
+                                if let Some(amt) = bonus {
+                                    temp_dice = temp_dice.give_bonus(amt);
+                                }
                             }
+                            Err(e) => panic!("Move failed"),
                         }
-                        Err(e) => panic!("Move failed"),
+                    } else {
+                        // Move is invalid, player cheated.
+                        panic!("Invalid move");
                     }
-                } else {
-                    // Move is invalid, player cheated.
-                    panic!("Invalid move");
                 }
-
                 // Check whether there are valid moves left.
                 turn_done =
                     Board::has_valid_moves(&temp_board, &temp_dice, color);
@@ -189,22 +192,6 @@ impl<'a> Game<'a> {
             .get_blockades()
             .contains(&Loc::Spot { index: index })
     }
-}
-
-
-/// Generic Player trait provides an interface for the
-/// server to interact with players.
-pub trait Player {
-    /// Inform the Player that a game has started, and
-    /// what color the player is.
-    fn start_game(&self, color: Color) -> ();
-
-    /// Ask the player what move they want to make.
-    fn do_move(&self, board: Board, dice: Dice) -> Move;
-
-    /// Inform the player that they have suffered a doubles
-    /// penalty.
-    fn doubles_penalty(&self) -> ();
 }
 
 
@@ -260,8 +247,8 @@ mod tests {
             println!("TestPlayer is color: {:?}", color);
         }
 
-        fn do_move(&self, board: Board, dice: Dice) -> Move {
-            self.chosen_move.clone()
+        fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
+            vec![self.chosen_move.clone()]
         }
 
         fn doubles_penalty(&self) -> () {
@@ -328,7 +315,7 @@ mod tests {
                         .contains_key(clr));
         }
     }
-     #[test]
+    #[test]
     #[should_panic]
     /// Blockade Test
     /// Player cannot enter with a blockade on the entry points
@@ -350,13 +337,15 @@ mod tests {
              },
              false)
         };
-        b0.positions.clone().insert(Color::Green, green_pawn_locs);
+        b0.positions
+            .clone()
+            .insert(Color::Green, green_pawn_locs);
         let players = [&p1, &p2, &p3, &p4];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
         let mut game: Game = Game {
             players: BTreeMap::new(),
             dice: Dice {
-                rolls: vec![1,4],
+                rolls: vec![1, 4],
                 used: Vec::new(),
             },
             board: b0,
@@ -367,11 +356,11 @@ mod tests {
             assert!(game.players
                         .contains_key(&colors[i]));
         }
-        
+
         assert!(game.is_blockaded(RED_ENTRANCE));
         // This should panic because the Red player is trying to enter where there
         // is a blockade
-        let (board, dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+        let (board, dice) = game.give_turn(&Color::Red, &p1, roll_fn);
         //println!("{:#?}, {:#?}",board,dice);
         // When player tries to enter on blockade with move m, same board is returned
     }
@@ -380,14 +369,18 @@ mod tests {
     /// Blockade Test
     /// Player cannot put three pawns on one space
     fn cannot_form_blockade_of_three() {
-        let m: MoveType = MoveType::MoveMain { start: RED_ENTRANCE+6, distance: 1 };
+        let m: MoveType = MoveType::MoveMain {
+            start: RED_ENTRANCE + 6,
+            distance: 1,
+        };
         let p1 = TestPlayer::new(m.clone(), Color::Green);
-        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+7 },
-                               Loc::Spot { index: RED_ENTRANCE+7 },
-                               Loc::Spot { index: RED_ENTRANCE+6 },
+        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE + 7 },
+                               Loc::Spot { index: RED_ENTRANCE + 7 },
+                               Loc::Spot { index: RED_ENTRANCE + 6 },
                                Loc::Nest];
         let mut b0 = Board::new();
-        b0.positions.insert(Color::Green, green_pawn_locs);
+        b0.positions
+            .insert(Color::Green, green_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
         let roll_fn = |_| {
@@ -400,7 +393,7 @@ mod tests {
         let mut game: Game = Game {
             players: BTreeMap::new(),
             dice: Dice {
-                rolls: vec![1,4],
+                rolls: vec![1, 4],
                 used: Vec::new(),
             },
             board: b0,
@@ -411,8 +404,8 @@ mod tests {
             assert!(game.players
                         .contains_key(&colors[i]));
         }
-        assert!(game.is_blockaded(RED_ENTRANCE+7));
-        let (board,dice) = game.give_turn(&Color::Green,&p1,roll_fn);
+        assert!(game.is_blockaded(RED_ENTRANCE + 7));
+        let (board, dice) = game.give_turn(&Color::Green, &p1, roll_fn);
     }
 
     #[test]
@@ -420,19 +413,24 @@ mod tests {
     /// Blockade Test
     /// Player cannot pass blockade
     fn cannot_pass_blockade() {
-        let m: MoveType = MoveType::MoveMain { start: RED_ENTRANCE+6, distance: 2 };
+        let m: MoveType = MoveType::MoveMain {
+            start: RED_ENTRANCE + 6,
+            distance: 2,
+        };
         let p1 = TestPlayer::new(m.clone(), Color::Red);
-        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+7 },
-                               Loc::Spot { index: RED_ENTRANCE+7 },
+        let green_pawn_locs = [Loc::Spot { index: RED_ENTRANCE + 7 },
+                               Loc::Spot { index: RED_ENTRANCE + 7 },
                                Loc::Nest,
                                Loc::Nest];
-        let red_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+6 },
+        let red_pawn_locs = [Loc::Spot { index: RED_ENTRANCE + 6 },
                              Loc::Nest,
                              Loc::Nest,
                              Loc::Nest];
         let mut b0 = Board::new();
-        b0.positions.insert(Color::Green, green_pawn_locs);
-        b0.positions.insert(Color::Red,red_pawn_locs);
+        b0.positions
+            .insert(Color::Green, green_pawn_locs);
+        b0.positions
+            .insert(Color::Red, red_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
         let roll_fn = |_| {
@@ -445,7 +443,7 @@ mod tests {
         let mut game: Game = Game {
             players: BTreeMap::new(),
             dice: Dice {
-                rolls: vec![2,4],
+                rolls: vec![2, 4],
                 used: Vec::new(),
             },
             board: b0,
@@ -456,22 +454,26 @@ mod tests {
             assert!(game.players
                         .contains_key(&colors[i]));
         }
-        assert!(game.is_blockaded(RED_ENTRANCE+7));
-        let (board,dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+        assert!(game.is_blockaded(RED_ENTRANCE + 7));
+        let (board, dice) = game.give_turn(&Color::Red, &p1, roll_fn);
     }
     #[test]
     #[should_panic]
     /// Blockade Test
     /// Player cannot pass blockade of own color
     fn cannot_pass_blockade_of_own_color() {
-        let m: MoveType = MoveType::MoveMain { start: RED_ENTRANCE+6, distance: 2 };
+        let m: MoveType = MoveType::MoveMain {
+            start: RED_ENTRANCE + 6,
+            distance: 2,
+        };
         let p1 = TestPlayer::new(m.clone(), Color::Red);
-        let red_pawn_locs = [Loc::Spot { index: RED_ENTRANCE+7 },
-                               Loc::Spot { index: RED_ENTRANCE+7 },
-                               Loc::Nest,
-                               Loc::Nest];
+        let red_pawn_locs = [Loc::Spot { index: RED_ENTRANCE + 7 },
+                             Loc::Spot { index: RED_ENTRANCE + 7 },
+                             Loc::Nest,
+                             Loc::Nest];
         let mut b0 = Board::new();
-        b0.positions.insert(Color::Red, red_pawn_locs);
+        b0.positions
+            .insert(Color::Red, red_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
         let roll_fn = |_| {
@@ -484,7 +486,7 @@ mod tests {
         let mut game: Game = Game {
             players: BTreeMap::new(),
             dice: Dice {
-                rolls: vec![2,4],
+                rolls: vec![2, 4],
                 used: Vec::new(),
             },
             board: b0,
@@ -495,22 +497,27 @@ mod tests {
             assert!(game.players
                         .contains_key(&colors[i]));
         }
-        assert!(game.is_blockaded(RED_ENTRANCE+7));
-        let (board,dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+        assert!(game.is_blockaded(RED_ENTRANCE + 7));
+        let (board, dice) = game.give_turn(&Color::Red, &p1, roll_fn);
     }
     #[test]
     #[should_panic]
     /// Blockade Test
-    /// A red player has their pawns in their home row, and attempts 
+    /// A red player has their pawns in their home row, and attempts
     /// to move past the blockade. Should panic.
-    fn cannot_pass_blockade_in_home_row() {let m: MoveType = MoveType::MoveMain { start: RED_HOME_ROW, distance: 2 };
+    fn cannot_pass_blockade_in_home_row() {
+        let m: MoveType = MoveType::MoveMain {
+            start: RED_HOME_ROW,
+            distance: 2,
+        };
         let p1 = TestPlayer::new(m.clone(), Color::Red);
-        let red_pawn_locs = [Loc::Spot { index: RED_HOME_ROW+1 },
-                             Loc::Spot { index: RED_HOME_ROW+1 },
+        let red_pawn_locs = [Loc::Spot { index: RED_HOME_ROW + 1 },
+                             Loc::Spot { index: RED_HOME_ROW + 1 },
                              Loc::Spot { index: RED_HOME_ROW },
                              Loc::Nest];
         let mut b0 = Board::new();
-        b0.positions.insert(Color::Red, red_pawn_locs);
+        b0.positions
+            .insert(Color::Red, red_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
         let roll_fn = |_| {
@@ -523,7 +530,7 @@ mod tests {
         let mut game: Game = Game {
             players: BTreeMap::new(),
             dice: Dice {
-                rolls: vec![2,4],
+                rolls: vec![2, 4],
                 used: Vec::new(),
             },
             board: b0,
@@ -534,7 +541,7 @@ mod tests {
             assert!(game.players
                         .contains_key(&colors[i]));
         }
-        assert!(game.is_blockaded(RED_HOME_ROW+1));
-        let (board,dice) = game.give_turn(&Color::Red,&p1,roll_fn);
+        assert!(game.is_blockaded(RED_HOME_ROW + 1));
+        let (board, dice) = game.give_turn(&Color::Red, &p1, roll_fn);
     }
 }

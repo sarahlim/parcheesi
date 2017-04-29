@@ -18,7 +18,7 @@ pub enum Loc {
 pub type PawnLocs = [Loc; 4];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-/// Represents a color of a Pawn or Player.
+/// Represents a color of a Pawn or Player.b
 pub enum Color {
     Red,
     Green,
