@@ -5,14 +5,85 @@ use super::game::{Move, MoveType};
 use super::constants::*;
 use super::dice::Dice;
 
-
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the location of a pawn.
 pub enum Loc {
     Spot { index: usize },
     Nest,
     Home,
+}
+
+/// Represents a sequence of locations for each player.
+pub struct Path {
+    color: Color,
+    current_loc: Loc,
+}
+
+impl Path {
+    pub fn new(color: Color) -> Path {
+        Path {
+            color: color,
+            current_loc: Loc::Nest,
+        }
+    }
+}
+
+impl Iterator for Path {
+    type Item = Loc;
+
+    /// Return an Option<Loc> denoting the next location.
+    fn next(&mut self) -> Option<Loc> {
+        // Compute the next location in the path, based on the path color.
+        let entrance: usize = Board::get_entrance(&self.color);
+        let home_row: usize = Board::get_home_row(&self.color);
+        let exit: usize = Board::get_exit(&self.color);
+
+        let result: Option<Loc> = match self.current_loc {
+            // If we start from Home, there is no next location -- that would
+            // be overshooting.
+            Loc::Home => None,
+
+            // If we start from the Nest, the next location is the player's
+            // entrance.
+            Loc::Nest => Some(Loc::Spot { index: entrance }),
+
+            // If we start from a spot on the board, need more information
+            // about the spot, so we match again on the index.
+            Loc::Spot { index } => {
+                match index {
+                    // If we are on the main ring exit, enter the home row.
+                    ex if ex == exit => Some(Loc::Spot { index: home_row }),
+
+                    // If we are anywhere in home row, one of the following
+                    // occurs:
+                    // (1) Increment by 1, a regular move
+                    // (2) Land home
+                    // (3) Overshoot home (this case may be redundant?)
+                    hr if hr >= home_row => {
+                        let home: usize = home_row + HOME_ROW_LENGTH;
+                        let dest: usize = index + 1;
+
+                        match dest {
+                            x if x > home => None,  // Can't overshoot home
+                            h if h == home => Some(Loc::Home),
+                            _ => Some(Loc::Spot { index: dest }),
+                        }
+                    }
+
+                    // Otherwise, it's just an ordinary move on the main ring.
+                    // Return the next location, modulo the board size.
+                    _ => Some(Loc::Spot { index: (index + 1) % BOARD_SIZE }),
+                }
+            }
+        };
+
+        if let Some(next_loc) = result {
+            // Update the current instance.
+            self.current_loc = next_loc;
+        }
+
+        result
+    }
 }
 
 pub type PawnLocs = [Loc; 4];
@@ -47,6 +118,10 @@ impl Pawn {
 pub struct MoveResult(pub Board, pub Option<Bonus>);
 
 type Bonus = usize;
+
+/// To make testing less verbose, we can express a board in terms of
+/// the difference in pawn positions from an initial board.
+type BoardPosnDiff = BTreeMap<Color, PawnLocs>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents a board, containing the positions of all pawns.
@@ -180,34 +255,37 @@ impl Board {
             return false;
         }
         // Can't move blockades together.
-        if let Some(pawn_locs) = self.positions.get(&color) {
-            // pawn_locs = []
-            let blockades: Vec<Loc> = self.get_blockades();
+        match self.get_pawns_by_color(&color) {
+            Ok(pawns) => {
+                let blockades: Vec<Loc> = self.get_blockades();
 
-            for &blockade_loc in blockades.iter() {
-                // Get the ids of the pawns that formed the blockade
-                // at this location.
-                let blockade_pawn_ids = pawn_locs
-                    .iter()
-                    .cloned()
-                    .enumerate()
-                    .filter(|&(_, loc)| loc == blockade_loc)
-                    .collect::<Vec<(usize, Loc)>>();
+                for &blockade_loc in blockades.iter() {
+                    // Get the ids of the pawns that formed the blockade
+                    // at this location.
+                    let blockade_pawn_ids = pawns
+                        .iter()
+                        .cloned()
+                        .enumerate()
+                        .filter(|&(_, loc)| loc == blockade_loc)
+                        .collect::<Vec<(usize, Loc)>>();
 
-                // If the new locations of the pawns are the same,
-                // the turn is invalid.
-                let new_loc_1 =
-                    end.get_pawn_loc(&color, blockade_pawn_ids[0].0);
-                let new_loc_2 =
-                    end.get_pawn_loc(&color, blockade_pawn_ids[1].0);
+                    // If the new locations of the pawns are the same,
+                    // the turn is invalid.
+                    let new_loc_1 =
+                        end.get_pawn_loc(&color, blockade_pawn_ids[0].0);
+                    let new_loc_2 =
+                        end.get_pawn_loc(&color, blockade_pawn_ids[1].0);
 
-                if new_loc_1 == new_loc_2 {
-                    return false;
+                    if new_loc_1 == new_loc_2 {
+                        return false;
+                    }
                 }
+
+                // If we got through all of the pawns and there aren't any
+                // blockades moved together, the turn is valid.
+                true
             }
-            return true;
-        } else {
-            panic!("Couldn't get pawns for color");
+            Err(why) => panic!(why),
         }
     }
 
@@ -363,66 +441,6 @@ impl Board {
         }
     }
 
-    // Takes a move and generates the sequence of board locations
-    // corresponding to the pawn's travel.
-    fn move_path(m: Move) -> Vec<Loc> {
-        vec![Loc::Nest]
-    }
-
-    // Associated helper function to compute the next (start + 1) location
-    // for a pawn's movement, based on its color.
-    //
-    // Note that this function does NOT have access to the board state.
-    // It's merely used to abstract over the unfortunate arithmetic from
-    // absolute indexing.
-    fn next_loc(color: &Color, start: &Loc) -> Result<Loc, &'static str> {
-        let entrance: usize = Board::get_entrance(&color);
-        let home_row: usize = Board::get_home_row(&color);
-        let exit: usize = Board::get_home_row(&color);
-
-        let result: Loc = match *start {
-            // If we start from Home, there is no next location -- that would
-            // be overshooting.
-            Loc::Home => return Err("Can't overshoot home"),
-
-            // If we start from the Nest, the next location is the player's
-            // entrance.
-            Loc::Nest => Loc::Spot { index: entrance },
-
-            // If we start from a spot on the board, need more information
-            // about the spot, so we match again on the index.
-            Loc::Spot { index } => {
-                match index {
-                    // If we are on the main ring exit, enter the home row.
-                    ex if ex == exit => Loc::Spot { index: home_row },
-
-                    // If we are anywhere in home row, one of the following
-                    // occurs:
-                    // (1) Increment by 1, a regular move
-                    // (2) Land home
-                    // (3) Overshoot home (this case may be redundant?)
-                    hr if hr >= home_row => {
-                        let home: usize = home_row + HOME_ROW_LENGTH;
-                        let dest: usize = index + 1;
-
-                        match dest {
-                            x if x > home => return Err("Can't overshoot home"),
-                            h if h == home => Loc::Home,
-                            _ => Loc::Spot { index: dest },
-                        }
-                    }
-
-                    // Otherwise, it's just an ordinary move on the main ring.
-                    // Return the next location, modulo the board size.
-                    _ => Loc::Spot { index: index + 1 % BOARD_SIZE },
-                }
-            }
-
-        };
-
-        Ok(result)
-    }
-
     /// Checks if a player has won the game, and returns an Option containing
     /// the winner's color if one exists.
     pub fn has_winner(&self) -> Option<Color> {
@@ -463,6 +481,16 @@ impl Board {
                 memo.append(&mut b);
                 memo
             })
+    }
+
+    /// Get a reference to all the pawns for a given player.
+    pub fn get_pawns_by_color(&self,
+                              color: &Color)
+                              -> Result<PawnLocs, &'static str> {
+        match self.positions.get(&color) {
+            Some(pawns) => Ok(*pawns),
+            None => Err("Couldn't get pawns for color"),
+        }
     }
 
     /// Checks the location of a pawn in the main ring.
@@ -624,10 +652,6 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// To make testing less verbose, we can express a board in terms of
-    /// the difference in pawn positions from an initial board.
-    type BoardPosnDiff = BTreeMap<Color, PawnLocs>;
 
     /// Helper utility for testing that moves produce expected boards.
     fn move_tester(start: BoardPosnDiff,
