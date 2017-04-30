@@ -318,47 +318,53 @@ impl Board {
         if dice.all_used() {
             return false;
         }
-        if let Some(pawn_locs) = board.positions.get(color) {
-            let valid_for_roll = |&r| {
-                pawn_locs
-                    .iter()
-                    .enumerate()
-                    .any(|(i, loc)| {
-                        let m_type: MoveType = match *loc {
-                            Loc::Spot { index } => {
-                                if Board::is_home_row(*color,
-                                                      Loc::Spot {
-                                                          index: index,
-                                                      }) {
-                                    MoveType::MoveHome {
-                                        start: index,
-                                        distance: r,
-                                    }
-                                } else {
-                                    MoveType::MoveMain {
-                                        start: index,
-                                        distance: r,
-                                    }
+
+        let pawns: PawnLocs = board.get_pawns_by_color(color);
+
+        let valid_for_roll = |&r| -> bool {
+            let build_move_and_check =
+                |(pawn_id, &loc): (usize, &Loc)| -> bool {
+                    let pawn = Pawn {
+                        color: *color,
+                        id: pawn_id,
+                    };
+
+                    let m_type = match loc {
+                        Loc::Spot { index } => {
+                            if Board::is_home_row(*color, loc) {
+                                MoveType::MoveHome {
+                                    start: index,
+                                    distance: r,
+                                }
+                            } else {
+                                MoveType::MoveMain {
+                                    start: index,
+                                    distance: r,
                                 }
                             }
-                            _ => return false,
-                        };
-                        let m = Move {
-                            m_type: m_type,
-                            pawn: Pawn {
-                                color: *color,
-                                id: i,
-                            },
-                        };
-                        Board::is_valid_move(board, dice, &m)
-                    })
-            };
-            dice.rolls
+                        }
+                        // Early return false if the pawn is Home or in the Nest,
+                        // because it can't take a move.
+                        _ => return false, 
+                    };
+
+                    let mv = Move {
+                        m_type: m_type,
+                        pawn: pawn,
+                    };
+
+                    Board::is_valid_move(board, dice, &mv)
+                };
+
+            pawns
                 .iter()
-                .any(valid_for_roll)
-        } else {
-            panic!("Couldn't get pawn locations for player");
-        }
+                .enumerate()
+                .any(build_move_and_check)
+        };
+
+        dice.rolls
+            .iter()
+            .any(valid_for_roll)
     }
 
     /// Determines whether an individual mini-move is valid, given some board and dice.
