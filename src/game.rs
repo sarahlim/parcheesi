@@ -7,14 +7,14 @@ use super::board::{Color, Board, Pawn, Loc, MoveResult};
 use super::constants::*;
 
 /// Represents a game instance with connected Players.
-struct Game<'a> {
+pub struct Game<'a> {
     players: BTreeMap<Color, &'a (Player + 'a)>, // Players won't outlive game
     dice: Dice,
     board: Board,
 }
 
 impl<'a> Game<'a> {
-    fn new() -> Game<'a> {
+    pub fn new() -> Game<'a> {
         Game {
             players: BTreeMap::new(),
             board: Board::new(),
