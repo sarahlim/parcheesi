@@ -1,39 +1,19 @@
 use super::player::Player;
 use super::constants::*;
 use super::board::{Board, Pawn, Color, Path, Loc, PawnLocs};
-use super::game::Move;
+use super::game::{Move, MoveType};
 use super::dice::Dice;
 
-struct MoveFirstPawnPlayer {
+pub struct MoveFirstPawnPlayer {
     color: Color,
 }
 
-fn sort_locs_by_color(color: &Color, locs: PawnLocs) -> PawnLocs {
-    // Try generating the whole path.
-    // let path = Path::new(*color).take(BOARD_SIZE);
 
-    // // Get the ordinal index of a pawn location, with respect to the
-    // // player's whole path on the board.
-    // let pawn_loc_ordinal = |&pawn_loc| -> usize {
-    //     let is_pawn_loc = |path_loc| path_loc == pawn_loc;
-    //     let position: Option<usize> = path.position(is_pawn_loc);
+//fn get_moves_from_loc(dice: &Dice, index: usize) -> Vec<Move> {
+//
+//}
 
-    //     match position {
-    //         Some(index) => index,
-    //         None => panic!("Pawn is out of bounds"),
-    //     }
-    // };
-
-    // // Clone the list of locations so we can sort it.
-    // let locs_vector: Vec<Loc> = Vec::with_capacity(locs.len());
-
-    // locs_clone
-    //     .iter()
-    //     .enumerate()
-    //     .collect::<[(usize, &Loc); 4]>()
-    //     .sort_by(|&(_, loc)| pawn_loc_ordinal(loc))
-    locs
-}
+// Function to expose an iterator of the dice rolls, for now jank patch with dices.rolls.iter()
 
 impl Player for MoveFirstPawnPlayer {
     /// Always try to move the furthest pawn.
@@ -41,13 +21,48 @@ impl Player for MoveFirstPawnPlayer {
     /// return an empty vector of moves.
     fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
         let mut moves: Vec<Move> = Vec::new();
-
-        // Sort the pawns according to how far they are along the board.
-        let pawns: PawnLocs = match board.get_pawns_by_color(&self.color) {
-            Ok(pawns) => sort_locs_by_color(&self.color, pawns),
-            Err(msg) => panic!(msg),
-        };
-
+        let pawn_locs: PawnLocs = board.get_pawns_by_color(&self.color); // call sort player locs here, that vector of pairs removes need to call enumerated below
+        // TODO:: Move this into library
+        'outer: for (pawn_id, &loc) in pawn_locs
+                .iter()
+                .enumerate() {
+            'inner: for &mini_move in dice.rolls.iter() {
+                println!("Die Roll is {:#?} Id is  {:#?} Loc is {:#?} {:#?}",
+                         mini_move,
+                         pawn_id,
+                         loc,
+                         &self.color);
+                let m = Move {
+                    pawn: Pawn {
+                        color: self.color,
+                        id: pawn_id,
+                    },
+                    m_type: match loc {
+                        Loc::Nest => MoveType::EnterPiece,
+                        Loc::Home => continue,
+                        Loc::Spot { index } => {
+                            if Board::is_home_row(self.color, loc) {
+                                MoveType::MoveHome {
+                                    start: index,
+                                    distance: mini_move,
+                                }
+                            } else {
+                                MoveType::MoveMain {
+                                    start: index,
+                                    distance: mini_move,
+                                }
+                            }
+                        }
+                    },
+                };
+                // is valid move check should be done here
+                if Board::is_valid_move(&board, &dice, &m) {
+                    moves.push(m);
+                    break 'outer;
+                }
+            }
+        }
+        println!("{:#?}",moves);
         moves
     }
 }
@@ -55,41 +70,37 @@ impl Player for MoveFirstPawnPlayer {
 mod test {
     use super::*;
 
+
     #[test]
-    fn move_first_pawn_if_able() {
-        Board::from(map! { Color::Green => [Loc::Spot { index: 2 },
-            Loc::Spot { index: 15 },
-            Loc::Spot { index: 19 },
-            Loc::Nest ],
-            Color::Blue => [Loc::Spot { index: 34 },
-            Loc::Spot { index: 38 },
-            Loc::Spot { index: 45 },
-            Loc::Spot { index 49 }]
+    fn do_move_basic() {
+        let test_player: MoveFirstPawnPlayer =
+            MoveFirstPawnPlayer { color: Color::Green };
+        let test_board = Board::from( map!{
+            Color::Green => [Loc::Spot {
+                index: 58,
+            },
+                             Loc::Nest,
+                             Loc::Nest,
+                             Loc::Home,
+            ]
         });
-
-        let mut game = Game::new();
-
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![3, 1],
-                 used: vec![],
-             },
-             false)
+        let test_dice = Dice {
+            rolls: vec![5, 5],
+            used: vec![],
         };
-
-        let expected_move_1: MoveType = MoveType::MoveMain {
-            start: 19,
-            distance: 3,
+        let expected_move = Move {
+            m_type: MoveType::MoveMain {
+                    start: 58,
+                    distance: 5,
+                },
+            pawn: Pawn {
+                id: 0,
+                color: Color::Green,
+            },
         };
-
-        let expected_pawn: Pawn = Pawn {
-            color: Color::Green,
-            id: 2,
-        };
-
-        let expected_move_2: MoveType = MoveType::MoveMain {
-            start: 22,
-            distance: 1,
-        };
+        assert!(test_player.do_move(test_board, test_dice).pop() == Some(expected_move));
     }
+
+
 }
+

@@ -166,7 +166,7 @@ impl Board {
     /// Alternate constructor for a board, which takes a partial map of positions
     /// and merges with the default board.
     pub fn from(posns: BoardPosnDiff) -> Board {
-        let mut board: Board = Board::new();
+        let board: Board = Board::new();
         let mut positions: BTreeMap<Color, PawnLocs> = board.positions.clone();
 
         for (clr, &locs) in posns.iter() {
@@ -684,7 +684,6 @@ mod tests {
 
         pub fn next(&self) -> (Loc, Option<Bonus>) {
             let board: Board = self.make_board();
-            let dice: Dice = self.make_dice();
 
             let result: Result<MoveResult, &'static str> =
                 board.handle_move(self.make_move());
@@ -769,8 +768,6 @@ mod tests {
                      Loc::Spot { index: 49 },
                      Loc::Spot { index: 66 }];
 
-        let actual: Vec<(usize, Loc)> = Board::sort_player_locs(&Color::Yellow,
-                                                                posns);
         assert_eq!(Board::sort_player_locs(&Color::Red, posns),
                    vec![(0, Loc::Spot { index: 11 }),
                         (1, Loc::Spot { index: 30 }),

@@ -261,7 +261,7 @@ mod tests {
     fn enter_1_4() {
         let m: MoveType = MoveType::EnterPiece;
         let p_1 = TestPlayer::new(m.clone(), Color::Green);
-        let mut game: Game = Game {
+        let game: Game = Game {
             players: map!{ Color::Green => &p_1 as &Player },
             dice: Dice::new(),
             board: Board::new(),
@@ -329,7 +329,7 @@ mod tests {
                                Loc::Spot { index: RED_ENTRANCE },
                                Loc::Nest,
                                Loc::Nest];
-        let mut b0 = Board::new();
+        let b0 = Board::new();
         let roll_fn = |_| {
             (Dice {
                  rolls: vec![1, 4],
