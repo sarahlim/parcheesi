@@ -2,6 +2,8 @@
 
 extern crate rand;
 
+use super::game::{Move, MoveType};
+
 use self::rand::Rng;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -91,9 +93,20 @@ impl Dice {
         EntryMove::NoEntry
     }
 
+    /// Consume a game move from the available rolls.
+    pub fn consume_move(&self, mv: &Move) -> Dice {
+        match mv.m_type {
+            MoveType::EnterPiece => self.consume_entry_move(),
+            MoveType::MoveHome { distance, .. } |
+            MoveType::MoveMain { distance, .. } => {
+                self.consume_normal_move(distance)
+            }
+        }
+    }
+
     /// Consume a mini-move from the list of available rolls, marking it as used.
     /// Returns a new struct with updated lists.
-    pub fn consume_normal_move(&self, distance: usize) -> Dice {
+    fn consume_normal_move(&self, distance: usize) -> Dice {
         if let Some(index) = self.rolls
                .iter()
                .position(|&d| d == distance) {
