@@ -16,10 +16,10 @@ pub static BLUE_HOME_ROW: usize = 200;
 pub static YELLOW_HOME_ROW: usize = 300;
 pub static GREEN_HOME_ROW: usize = 400;
 
-/// Absolute distance between a player's entry spot and
-/// main ring exit (i.e., the point at which they turn off into the
-/// home row).
-pub static EXIT_TO_ENTRANCE: usize = 5;
+pub static RED_EXIT: usize = 67;
+pub static BLUE_EXIT: usize = 16;
+pub static YELLOW_EXIT: usize = 33;
+pub static GREEN_EXIT: usize = 50;
 
 pub static HOME_ROW_LENGTH: usize = 7;
 pub static BOARD_SIZE: usize = 68;
