@@ -404,13 +404,18 @@ impl Board {
             MoveType::MoveMain { start, distance } |
             MoveType::MoveHome { start, distance } => {
                 let start_loc: Loc = Loc::Spot { index: start };
+                let finish_loc: Loc = Loc::Spot { index: start + distance };
 
                 // Pawn is currently at start location in the Main Ring.
                 let current_pawn_loc: Loc = board.get_pawn_loc(&color, id);
                 if current_pawn_loc != start_loc {
                     return false;
                 }
-
+                // This will return false when the pawn attempts to bop on a safety square
+                if Board::is_safety(finish_loc) &&
+                   board.full_safety_square(finish_loc, color) {
+                    return false;
+                }
                 // Chosen move distance is a valid mini-move.
                 if !dice.contains(&distance) {
                     return false;
@@ -425,6 +430,7 @@ impl Board {
                     move_path.any(|path_loc| blockades.contains(&path_loc));
 
                 if has_blockade_on_path {
+                    println!("has block");
                     return false;
                 }
 
@@ -455,6 +461,28 @@ impl Board {
         } else {
             None
         }
+    }
+
+    /// Checks to see if a location has a pawn there already
+    pub fn full_safety_square(&self, dest_loc: Loc, color: Color) -> bool {
+        //TODO some how make this not reuse code from can bop
+        let is_dest = |l: Loc| l == dest_loc;
+        for (&c, locs) in self.positions.iter() {
+            if color == c {
+                continue;
+            }
+            // We are looking for locations of opponents pawns on the given space
+            let occupants: Vec<(usize, Loc)> = locs.iter()
+                .cloned()
+                .enumerate()
+                .filter(|&(_, loc)| is_dest(loc))
+                .collect();
+
+            if !occupants.is_empty() {
+                return true;
+            }
+        }
+        false
     }
 
     /// Returns a list of all blockades on the board.
