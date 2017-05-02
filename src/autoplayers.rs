@@ -8,6 +8,12 @@ pub struct MoveFirstPawnPlayer {
     color: Color,
 }
 
+pub struct MoveLastPawnPlayer {
+    color: Color,
+}
+
+
+
 
 //fn get_moves_from_loc(dice: &Dice, index: usize) -> Vec<Move> {
 //
@@ -26,6 +32,61 @@ impl Player for MoveFirstPawnPlayer {
             Board::sort_player_locs(&self.color, pawn_locs); // cannot use board.etc bc for functions bc it is a method and doesn't have a self reference.
         // TODO:: Move this into library
         sorted_pawn_locs.reverse();
+        println!("Sorted pawn locs are {:#?}", sorted_pawn_locs);
+        'outer: for &(pawn_id, loc) in sorted_pawn_locs.iter() {
+            'inner: for &mini_move in dice.rolls.iter() {
+                println!("Die Roll is {:#?} Id is  {:#?} Loc is {:#?} {:#?}",
+                         mini_move,
+                         pawn_id,
+                         loc,
+                         &self.color);
+                let m = Move {
+                    pawn: Pawn {
+                        color: self.color,
+                        id: pawn_id,
+                    },
+                    m_type: match loc {
+                        Loc::Nest => MoveType::EnterPiece,
+                        Loc::Home => continue,
+                        Loc::Spot { index } => {
+                            if Board::is_home_row(self.color, loc) {
+                                MoveType::MoveHome {
+                                    start: index,
+                                    distance: mini_move,
+                                }
+                            } else {
+                                MoveType::MoveMain {
+                                    start: index,
+                                    distance: mini_move,
+                                }
+                            }
+                        }
+                    },
+                };
+                // is valid move check should be done here
+                if Board::is_valid_move(&board, &dice, &m) {
+                    moves.push(m);
+                    break 'outer;
+                } else {
+                    println!("invalid");
+                }
+            }
+        }
+        println!("{:#?}", moves);
+        moves
+    }
+}
+
+impl Player for MoveLastPawnPlayer {
+    /// Always try to move the furthest pawn.
+    /// If none of the pawns can be moved with any of the mini-moves,
+    /// return an empty vector of moves.
+    fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
+        let mut moves: Vec<Move> = Vec::new();
+        let pawn_locs: PawnLocs = board.get_pawns_by_color(&self.color); // call sort player locs here, that vector of pairs removes need to call enumerated below
+        let mut sorted_pawn_locs: Vec<(usize, Loc)> =
+            Board::sort_player_locs(&self.color, pawn_locs); // cannot use board.etc bc for functions bc it is a method and doesn't have a self reference.
+        // TODO:: Move this into library
         println!("Sorted pawn locs are {:#?}", sorted_pawn_locs);
         'outer: for &(pawn_id, loc) in sorted_pawn_locs.iter() {
             'inner: for &mini_move in dice.rolls.iter() {
