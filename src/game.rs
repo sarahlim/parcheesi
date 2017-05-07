@@ -5,6 +5,7 @@ use super::player::Player;
 use super::dice::Dice;
 use super::board::{Color, Board, Pawn, Loc, MoveResult};
 use super::constants::*;
+use super::parse;
 
 /// Represents a game instance with connected Players.
 pub struct Game<'a> {
@@ -52,6 +53,8 @@ impl<'a> Game<'a> {
         }
 
         for (clr, p) in self.players.iter() {
+            let xml_response = parse::xml_start_game(&clr);
+            // Use tcp to send xml response
             p.start_game(*clr);
         }
 
@@ -217,6 +220,28 @@ pub struct Move {
     pub pawn: Pawn,
 }
 
+impl Move {
+    pub fn xmlify(&self) -> String {
+        match self.m_type {
+            MoveType::EnterPiece => "<enter-piece> ".to_string() + &self.pawn.xmlify() + " </enter-piece>",
+            MoveType::MoveMain{ start, distance }  => "<move-piece-main> ".to_string() + &self.pawn.xmlify() + &xmlify_start(start)
+               +  &xmlify_distance(distance) + " </move-piece-main>",
+            MoveType::MoveHome{ start, distance } => "<move-piece-home> ".to_string() + &self.pawn.xmlify() + &xmlify_start(start)
+                + &xmlify_distance(distance) + " </move-piece-home>",
+        }
+    }
+}
+
+pub fn xmlify_start(start: usize) -> String {
+    " <start> ".to_string() + &start.to_string() + " </start>"
+}
+
+pub fn xmlify_distance(distance: usize) -> String {
+    " <distance> ".to_string() + &distance.to_string() + " </distance>"
+}
+
+            
+        
 #[cfg(test)]
 mod tests {
     use super::*;

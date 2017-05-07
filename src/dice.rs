@@ -37,6 +37,7 @@ pub enum EntryMove {
     NoEntry, // (3)
 }
 
+
 impl Dice {
     /// Initialize a new blank instance.
     pub fn new() -> Dice {
@@ -46,6 +47,16 @@ impl Dice {
         }
     }
 
+    /// Returns xml instance of Dice 
+    pub fn xmlify(&self) -> String {
+        let xml_response:String  = "<dice> ".to_string();
+        let mut mini_move_string: String = "".to_string();
+        for mini_move in &self.rolls {
+            mini_move_string = mini_move_string + "<die> " + &mini_move.clone().to_string() + " </die> ";
+        }
+        xml_response + &mini_move_string + "</dice>"
+    }
+    
     /// Initialize a new instance.
     ///
     /// Takes a predicate which denotes whether or not to apply

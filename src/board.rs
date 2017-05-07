@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::fmt;
 use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
 use super::constants::*;
@@ -115,6 +116,12 @@ pub enum Color {
     Yellow,
 }
 
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Represents a pawn on the board.
 pub struct Pawn {
@@ -130,6 +137,11 @@ impl Pawn {
             id: id,
             color: color,
         }
+    }
+
+    pub fn xmlify(&self) -> String {
+        let xml_response = "<pawn> <color> ".to_string() + &self.color.to_string() + " </color> <id> " + &self.id.to_string() + " </id> </pawn>";
+        xml_response
     }
 }
 

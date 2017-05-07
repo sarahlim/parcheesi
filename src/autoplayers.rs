@@ -5,15 +5,25 @@ use super::game::{Move, MoveType};
 use super::dice::Dice;
 
 pub struct MoveFirstPawnPlayer {
-    color: Color,
+    pub color: Color,
 }
 
 pub struct MoveLastPawnPlayer {
-    color: Color,
+    pub color: Color,
+}
+
+pub struct XMLTestPlayer {
+    pub color: Color,
+    pub name: String,
 }
 
 
-
+impl Player for XMLTestPlayer {
+    fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
+        vec![]
+    }
+    
+}
 
 //fn get_moves_from_loc(dice: &Dice, index: usize) -> Vec<Move> {
 //
