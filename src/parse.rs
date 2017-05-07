@@ -36,9 +36,9 @@ pub fn xml_do_move(board: &Board, dice: &Dice) -> String {
 }
 
 pub fn xml_moves(move_vec: &Vec<Move>) -> String {
-    let mut move_header: String = "<moves> ".to_string();
+    let mut move_header: String = "<moves>".to_string();
     for moves in move_vec {
-        move_header = move_header + &moves.xmlify();
+        move_header = move_header + " " + &moves.xmlify();
     }
     move_header + " </moves>"
 }
@@ -165,14 +165,30 @@ mod test {
 
     #[test]
     fn xml_moves_() {
-        let m: Move = Move {
+        let m_1: Move = Move {
             m_type: MoveType::EnterPiece,
             pawn: Pawn {
                 color: Color::Red,
-                id: 2
+                id: 2,
             }
         };
-        let m_vec:Vec<Move> = vec![m.clone()];
-        assert!(xml_moves(&m_vec) == "<moves> ".to_string() + &m.xmlify() + " </moves>");
+        let m_2: Move = Move {
+            m_type: MoveType::MoveHome { start: 101, distance: 3},
+            pawn: Pawn {
+                color: Color::Red,
+                id: 2,
+            }
+         };
+        let m_3: Move = Move {
+            m_type: MoveType::MoveMain { start: 12, distance: 3 },
+            pawn: Pawn {
+                color: Color::Red,
+                id: 2,
+            }
+        };
+
+        let m_vec:Vec<Move> = vec![m_1.clone(),m_2.clone(),m_3.clone()];
+        println!("{}",xml_moves(&m_vec));
+        assert!(xml_moves(&m_vec) == "<moves> ".to_string() + &m_1.xmlify() + " " + &m_2.xmlify() + " " + &m_3.xmlify() + " </moves>");
     }
 }
