@@ -30,16 +30,25 @@ pub fn xml_start_game_response(player: &XMLTestPlayer) -> String {
     xml_response
 }
 
-pub fn xml_do_move(dice: &Dice, board: &Board) {
-    
+pub fn xml_do_move(board: &Board, dice: &Dice) -> String {
+    let xml_response: String = "<do-move> ".to_string() + &board.xmlify() + " " + &dice.xmlify() + " </do-move>";
+    xml_response
+}
+
+pub fn xml_moves(move_vec: &Vec<Move>) -> String {
+    let mut move_header: String = "<moves> ".to_string();
+    for moves in move_vec {
+        move_header = move_header + &moves.xmlify();
+    }
+    move_header + " </moves>"
 }
 
 pub fn xml_doubles_penalty() -> String {
-    "<doubles-penalty></doubles-penalty>".to_string()
+    "<doubles-penalty> </doubles-penalty>".to_string()
 }
 
 pub fn xml_void() -> String {
-    "<void></void>".to_string()       
+    "<void> </void>".to_string()       
 }
 
 
@@ -130,10 +139,40 @@ mod test {
     }
 
     #[test]
-    fn xmlify_board() {
+    fn xmlify_board_nest() {
         let board: Board = Board::new();
         println!("{:#?}", board);
         println!("{:#?}",board.xmlify());
         assert!(board.xmlify() == "<board> <start> <pawn> <color> Red </color> <id> 0 </id> </pawn> <pawn> <color> Red </color> <id> 1 </id> </pawn> <pawn> <color> Red </color> <id> 2 </id> </pawn> <pawn> <color> Red </color> <id> 3 </id> </pawn> <pawn> <color> Green </color> <id> 0 </id> </pawn> <pawn> <color> Green </color> <id> 1 </id> </pawn> <pawn> <color> Green </color> <id> 2 </id> </pawn> <pawn> <color> Green </color> <id> 3 </id> </pawn> <pawn> <color> Blue </color> <id> 0 </id> </pawn> <pawn> <color> Blue </color> <id> 1 </id> </pawn> <pawn> <color> Blue </color> <id> 2 </id> </pawn> <pawn> <color> Blue </color> <id> 3 </id> </pawn> <pawn> <color> Yellow </color> <id> 0 </id> </pawn> <pawn> <color> Yellow </color> <id> 1 </id> </pawn> <pawn> <color> Yellow </color> <id> 2 </id> </pawn> <pawn> <color> Yellow </color> <id> 3 </id> </pawn> </start> <main> </main> <home-rows> </home-rows> <home> </home> </board>");
+    }
+
+    #[test]
+    fn xmlify_board_real_game_do_move() {
+        let board: Board = Board::from(map!{
+            Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
+        });
+        let dice: Dice = Dice {
+            rolls: vec![1,2],
+            used: vec![],
+        };
+
+        let expected: String = "<board> <start> <pawn> <color> Green </color> <id> 0 </id> </pawn> <pawn> <color> Green </color> <id> 1 </id> </pawn> <pawn> <color> Green </color> <id> 2 </id> </pawn> <pawn> <color> Green </color> <id> 3 </id> </pawn> <pawn> <color> Blue </color> <id> 0 </id> </pawn> <pawn> <color> Blue </color> <id> 1 </id> </pawn> <pawn> <color> Blue </color> <id> 2 </id> </pawn> <pawn> <color> Blue </color> <id> 3 </id> </pawn> <pawn> <color> Yellow </color> <id> 0 </id> </pawn> <pawn> <color> Yellow </color> <id> 1 </id> </pawn> <pawn> <color> Yellow </color> <id> 2 </id> </pawn> <pawn> <color> Yellow </color> <id> 3 </id> </pawn> </start> <main> <piece-loc> <pawn> <color> Red </color> <id> 2 </id> </pawn> <loc> 30 </loc> </piece-loc> <piece-loc> <pawn> <color> Red </color> <id> 3 </id> </pawn> <loc> 29 </loc> </piece-loc> </main> <home-rows> <piece-loc> <pawn> <color> Red </color> <id> 1 </id> </pawn> <loc> 103 </loc> </piece-loc> </home-rows> <home> <pawn> <color> Red </color> <id> 0 </id> </pawn> </home> </board>".to_string();
+        assert!(board.xmlify() == expected);
+        // Tests the do move function, TODO separate into another test
+        assert!(xml_do_move(&board,&dice) == "<do-move> ".to_string() + &expected + " " + &dice.xmlify() + " </do-move>");
+        
+    }
+
+    #[test]
+    fn xml_moves_() {
+        let m: Move = Move {
+            m_type: MoveType::EnterPiece,
+            pawn: Pawn {
+                color: Color::Red,
+                id: 2
+            }
+        };
+        let m_vec:Vec<Move> = vec![m.clone()];
+        assert!(xml_moves(&m_vec) == "<moves> ".to_string() + &m.xmlify() + " </moves>");
     }
 }

@@ -300,19 +300,19 @@ impl Board {
         let mut home_row_string: String = "<home-rows>".to_string();
         let mut home_string: String = "<home>".to_string();
 
-        let mut posns: BTreeMap<Color, PawnLocs> = self.positions.clone();
+        let posns: BTreeMap<Color, PawnLocs> = self.positions.clone();
 
         for (clr, &locs) in posns.iter() {
             for (id, loc) in locs.iter()
                 .cloned()
                 .enumerate() {
-                    let mut pawn: Pawn = Pawn { id: id, color: *clr };
+                    let pawn: Pawn = Pawn { id: id, color: *clr };
                     match loc {
                         Loc::Nest => { start_string = start_string + " " + &pawn.xmlify(); },
                         Loc::Home => { home_string = home_string + " " + &pawn.xmlify(); }
                         Loc::Spot{ index }  => { if index > Board::get_exit(clr) {
-                            home_row_string = home_row_string + " <piece-loc> " + &pawn.xmlify() + "<loc> " + &index.to_string() + " </loc> </piece-loc>"; } else {
-                            main_row_string = main_row_string + " <piece-loc> " + &pawn.xmlify() + "<loc> " + &index.to_string() + " </loc> </piece-loc>"; }
+                            home_row_string = home_row_string + " <piece-loc> " + &pawn.xmlify() + " <loc> " + &index.to_string() + " </loc> </piece-loc>"; } else {
+                            main_row_string = main_row_string + " <piece-loc> " + &pawn.xmlify() + " <loc> " + &index.to_string() + " </loc> </piece-loc>"; }
                         }
                     }
                 }
