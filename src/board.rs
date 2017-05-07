@@ -291,6 +291,38 @@ impl Board {
         true
     }
 
+    /// As with other xmlify methods, we wish to return the xml representation of the board
+    /// where a board is represented as <board> start main home-rows home </board>. Each of these
+    /// pieces of the representation is represented by a piece-loc, which is defined as <piece-loc> pawn <loc> number </loc> </piece-loc>
+    pub fn xmlify(&self) -> String {
+        let mut start_string: String = "<start>".to_string();
+        let mut main_row_string: String = "<main>".to_string();
+        let mut home_row_string: String = "<home-rows>".to_string();
+        let mut home_string: String = "<home>".to_string();
+
+        let mut posns: BTreeMap<Color, PawnLocs> = self.positions.clone();
+
+        for (clr, &locs) in posns.iter() {
+            for (id, loc) in locs.iter()
+                .cloned()
+                .enumerate() {
+                    let mut pawn: Pawn = Pawn { id: id, color: *clr };
+                    match loc {
+                        Loc::Nest => { start_string = start_string + " " + &pawn.xmlify(); },
+                        Loc::Home => { home_string = home_string + " " + &pawn.xmlify(); }
+                        Loc::Spot{ index }  => { if index > Board::get_exit(clr) {
+                            home_row_string = home_row_string + " <piece-loc> " + &pawn.xmlify() + "<loc> " + &index.to_string() + " </loc> </piece-loc>"; } else {
+                            main_row_string = main_row_string + " <piece-loc> " + &pawn.xmlify() + "<loc> " + &index.to_string() + " </loc> </piece-loc>"; }
+                        }
+                    }
+                }
+        }
+        "<board> ".to_string() + &start_string + " </start> " + &main_row_string + " </main> " + &home_row_string + " </home-rows> " + &home_string + " </home> </board>"
+    }
+
+    
+
+
     /// Sort a player's pawns according to their position relative to the player's
     /// path around the board.
     pub fn sort_player_locs(color: &Color,
