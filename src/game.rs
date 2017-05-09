@@ -7,6 +7,7 @@ use super::board::{Color, Board, Pawn, Loc, MoveResult};
 use super::constants::*;
 use super::parse;
 
+
 /// Represents a game instance with connected Players.
 pub struct Game<'a> {
     players: BTreeMap<Color, &'a (Player + 'a)>, // Players won't outlive game

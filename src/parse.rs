@@ -11,22 +11,7 @@ use super::constants::*;
 use super::quick_xml::reader::Reader;
 use super::quick_xml::events::Event;
 use std::io::prelude::*;
-use std::net::{TcpListener, TcpStream};
 
-
-
-/// Network framework for testing purposes
-pub fn server_start_up() -> () {
-    let listener = TcpListener::bind("localhost:8000").unwrap();
-    let mut result: String = String::new();
-    if let Ok((mut stream, addr)) = listener.accept() {
-        stream.write(b"sucks");
-        {
-            stream.read_to_string(&mut result);
-        }
-        println!("{:#}", result);
-    }
-}
 
    
 
