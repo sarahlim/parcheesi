@@ -58,7 +58,7 @@ impl<'a> Game<'a> {
             // will be the players name. Since we don't have anything implementing
             // the players name. We will drop it.
             let xml_request = parse::xml_start_game(&clr);
-            let xml_response = "";/* receive magic */
+            let xml_response = ""; /* receive magic */
             // Use tcp to send xml response
             // p.start_game("Place Holder".to_string());
         }
@@ -227,11 +227,22 @@ pub struct Move {
 impl Move {
     pub fn xmlify(&self) -> String {
         match self.m_type {
-            MoveType::EnterPiece => "<enter-piece> ".to_string() + &self.pawn.xmlify() + " </enter-piece>",
-            MoveType::MoveMain{ start, distance }  => "<move-piece-main> ".to_string() + &self.pawn.xmlify() + &xmlify_start(start)
-               +  &xmlify_distance(distance) + " </move-piece-main>",
-            MoveType::MoveHome{ start, distance } => "<move-piece-home> ".to_string() + &self.pawn.xmlify() + &xmlify_start(start)
-                + &xmlify_distance(distance) + " </move-piece-home>",
+            MoveType::EnterPiece => {
+                "<enter-piece> ".to_string() + &self.pawn.xmlify() +
+                " </enter-piece>"
+            }
+            MoveType::MoveMain { start, distance } => {
+                "<move-piece-main> ".to_string() + &self.pawn.xmlify() +
+                &xmlify_start(start) +
+                &xmlify_distance(distance) +
+                " </move-piece-main>"
+            }
+            MoveType::MoveHome { start, distance } => {
+                "<move-piece-home> ".to_string() + &self.pawn.xmlify() +
+                &xmlify_start(start) +
+                &xmlify_distance(distance) +
+                " </move-piece-home>"
+            }
         }
     }
 }
@@ -244,8 +255,8 @@ pub fn xmlify_distance(distance: usize) -> String {
     " <distance> ".to_string() + &distance.to_string() + " </distance>"
 }
 
-            
-        
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

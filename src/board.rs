@@ -140,7 +140,10 @@ impl Pawn {
     }
 
     pub fn xmlify(&self) -> String {
-        let xml_response = "<pawn> <color> ".to_string() + &self.color.to_string() + " </color> <id> " + &self.id.to_string() + " </id> </pawn>";
+        let xml_response =
+            "<pawn> <color> ".to_string() + &self.color.to_string() +
+            " </color> <id> " + &self.id.to_string() +
+            " </id> </pawn>";
         xml_response
     }
 }
@@ -304,23 +307,45 @@ impl Board {
 
         for (clr, &locs) in posns.iter() {
             for (id, loc) in locs.iter()
-                .cloned()
-                .enumerate() {
-                    let pawn: Pawn = Pawn { id: id, color: *clr };
-                    match loc {
-                        Loc::Nest => { start_string = start_string + " " + &pawn.xmlify(); },
-                        Loc::Home => { home_string = home_string + " " + &pawn.xmlify(); }
-                        Loc::Spot{ index }  => { if index > Board::get_exit(clr) {
-                            home_row_string = home_row_string + " <piece-loc> " + &pawn.xmlify() + " <loc> " + &index.to_string() + " </loc> </piece-loc>"; } else {
-                            main_row_string = main_row_string + " <piece-loc> " + &pawn.xmlify() + " <loc> " + &index.to_string() + " </loc> </piece-loc>"; }
+                    .cloned()
+                    .enumerate() {
+                let pawn: Pawn = Pawn {
+                    id: id,
+                    color: *clr,
+                };
+                match loc {
+                    Loc::Nest => {
+                        start_string = start_string + " " + &pawn.xmlify();
+                    }
+                    Loc::Home => {
+                        home_string = home_string + " " + &pawn.xmlify();
+                    }
+                    Loc::Spot { index } => {
+                        if index > Board::get_exit(clr) {
+                            home_row_string = home_row_string +
+                                              " <piece-loc> " +
+                                              &pawn.xmlify() +
+                                              " <loc> " +
+                                              &index.to_string() +
+                                              " </loc> </piece-loc>";
+                        } else {
+                            main_row_string = main_row_string +
+                                              " <piece-loc> " +
+                                              &pawn.xmlify() +
+                                              " <loc> " +
+                                              &index.to_string() +
+                                              " </loc> </piece-loc>";
                         }
                     }
                 }
+            }
         }
-        "<board> ".to_string() + &start_string + " </start> " + &main_row_string + " </main> " + &home_row_string + " </home-rows> " + &home_string + " </home> </board>"
+        "<board> ".to_string() + &start_string + " </start> " +
+        &main_row_string + " </main> " + &home_row_string +
+        " </home-rows> " + &home_string + " </home> </board>"
     }
 
-    
+
 
 
     /// Sort a player's pawns according to their position relative to the player's

@@ -25,7 +25,6 @@ impl Player for XMLTestPlayer {
     fn start_game(&self) -> () {
         //self.name; // Send this over the wire
     }
-    
 }
 
 //fn get_moves_from_loc(dice: &Dice, index: usize) -> Vec<Move> {
@@ -35,9 +34,8 @@ impl Player for XMLTestPlayer {
 // Function to expose an iterator of the dice rolls, for now jank patch with dices.rolls.iter()
 
 impl Player for MoveFirstPawnPlayer {
+    fn start_game(&self) -> () {}
 
-    fn start_game(&self) -> () {    }
-    
     /// Always try to move the furthest pawn.
     /// If none of the pawns can be moved with any of the mini-moves,
     /// return an empty vector of moves.
@@ -94,10 +92,9 @@ impl Player for MoveFirstPawnPlayer {
 }
 
 impl Player for MoveLastPawnPlayer {
+    fn start_game(&self) -> () {}
 
-    fn start_game(&self) -> () {    }
 
-    
     /// Always try to move the furthest pawn.
     /// If none of the pawns can be moved with any of the mini-moves,
     /// return an empty vector of moves.
@@ -194,6 +191,7 @@ Green: 67, 19, Home, 36
 Blue: 18, Home, Nest, 13
 // Expect: MoveMain { start: 36, distance: 1 }
 */
+
 
 
 
