@@ -17,10 +17,13 @@ pub struct XMLTestPlayer {
     pub name: String,
 }
 
-
 impl Player for XMLTestPlayer {
     fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
         vec![]
+    }
+
+    fn start_game(&self) -> () {
+        //self.name; // Send this over the wire
     }
     
 }
@@ -32,6 +35,9 @@ impl Player for XMLTestPlayer {
 // Function to expose an iterator of the dice rolls, for now jank patch with dices.rolls.iter()
 
 impl Player for MoveFirstPawnPlayer {
+
+    fn start_game(&self) -> () {    }
+    
     /// Always try to move the furthest pawn.
     /// If none of the pawns can be moved with any of the mini-moves,
     /// return an empty vector of moves.
@@ -88,6 +94,10 @@ impl Player for MoveFirstPawnPlayer {
 }
 
 impl Player for MoveLastPawnPlayer {
+
+    fn start_game(&self) -> () {    }
+
+    
     /// Always try to move the furthest pawn.
     /// If none of the pawns can be moved with any of the mini-moves,
     /// return an empty vector of moves.

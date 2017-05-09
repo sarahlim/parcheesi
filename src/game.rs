@@ -51,13 +51,16 @@ impl<'a> Game<'a> {
         if self.players.is_empty() {
             panic!("Can't start a game with zero players");
         }
-
         for (clr, p) in self.players.iter() {
-            let xml_response = parse::xml_start_game(&clr);
+            // Send the xml request to magic black box that will
+            // send it over the wire. Wait, for a response. The response
+            // will be the players name. Since we don't have anything implementing
+            // the players name. We will drop it.
+            let xml_request = parse::xml_start_game(&clr);
+            let xml_response = "";/* receive magic */
             // Use tcp to send xml response
-            p.start_game(*clr);
+            // p.start_game("Place Holder".to_string());
         }
-
         println!("Starting game.");
 
         while !self.is_game_over() {
@@ -268,8 +271,8 @@ mod tests {
     }
 
     impl Player for TestPlayer {
-        fn start_game(&self, color: Color) -> () {
-            println!("TestPlayer is color: {:?}", color);
+        fn start_game(&self) -> () {
+            println!("TestPlayer is color: ");
         }
 
         fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {

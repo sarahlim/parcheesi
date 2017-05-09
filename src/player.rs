@@ -7,9 +7,7 @@ use super::dice::Dice;
 pub trait Player {
     /// Inform the Player that a game has started, and
     /// what color the player is.
-    fn start_game(&self, color: Color) -> () {
-        println!("The game is start {:?}", color)
-    }
+    fn start_game(&self) -> ();
 
 
     /// Ask the player what move they want to make.

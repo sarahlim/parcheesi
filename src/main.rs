@@ -12,11 +12,13 @@ mod constants;
 mod player;
 mod autoplayers;
 mod parse;
+mod deserialize;
 
 
 
 fn main() {
     println!("Hello, world!");
+    deserialize::parse_start_game(parse::xml_start_game(&board::Color::Red));
 }
 
 

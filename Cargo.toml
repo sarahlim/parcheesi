@@ -5,3 +5,4 @@ authors = ["Sarah Lim <sarah@sarahlim.com>"]
 
 [dependencies]
 rand="0.3.0"
+quick-xml = "0.7.1"
