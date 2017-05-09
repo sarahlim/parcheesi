@@ -11,6 +11,7 @@ use super::constants::*;
 use super::quick_xml::reader::Reader;
 use super::quick_xml::events::Event;
 use std::io::prelude::*;
+use super::deserialize::*;
 
 
    
@@ -60,6 +61,7 @@ pub fn xml_void() -> String {
 
 mod test {
     use super::*;
+    use deserialize;
     
     #[test]
     fn xml_start_game_basic() {
@@ -192,6 +194,7 @@ mod test {
 
         let m_vec:Vec<Move> = vec![m_1.clone(),m_2.clone(),m_3.clone()];
         println!("{}",xml_moves(&m_vec));
+        deserialize::deserialize_moves(xml_moves(&m_vec));
         assert!(xml_moves(&m_vec) == "<moves> ".to_string() + &m_1.xmlify() + " " + &m_2.xmlify() + " " + &m_3.xmlify() + " </moves>");
     }
 }

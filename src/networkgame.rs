@@ -2,6 +2,9 @@ use std::net::{TcpListener, TcpStream};
 use std::io::prelude::*;
 use std::thread;
 
+
+// Mapping between colors and TCP Streams will be needed
+
 pub fn start_server() {
 
     let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
