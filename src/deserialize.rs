@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use super::player::Player;
 use super::autoplayers::XMLTestPlayer;
 use super::dice::Dice;
-use super::board::{Color, Board, Pawn, Loc, MoveResult};
+use super::board::{Color, Board, Pawn, Loc, MoveResult, PawnLocs};
 use super::game::{Move, MoveType};
 use super::constants::*;
 use super::parse;
@@ -181,12 +181,17 @@ pub fn vec_string_to_vec_move(vec_string: Vec<String>) -> Vec<Move> {
     vec_move
 }
 
-pub fn deserialize_board(xml: String) -> Board {
-    let mut vec_string: Vec<String> = xml_board_to_vec_string(xml);
-
-    Board::new()
-
+pub fn string_to_color(string: String) -> Color {
+    match string.as_ref() {
+        "Red" => Color::Red,
+        "Blue" => Color::Blue,
+        "Yellow" => Color::Yellow,
+        "Green" => Color::Green,
+        _ => panic!("string to color"),             
+    }
 }
+
+
 
 pub fn build_pawn_from_strings(color: String, id: String) -> Pawn {
     let pawn: Pawn = Pawn {
@@ -197,20 +202,51 @@ pub fn build_pawn_from_strings(color: String, id: String) -> Pawn {
     pawn
 }
 
-//Todo implement Loc enum by look at strings
-
-pub fn vec_string_to_board(vec_string: Vec<String>) -> Board {
-    //loop
-    Board::new()
+// Current gameplan, split xml string up into start main home-rows and home
+// then use another function to build up all the info
+pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Vec<String> {
+    
+    let mut start: Vec<String> = Vec::new();
+    let mut main: Vec<String> = Vec::new();
+    let mut home_rows: Vec<String> = Vec::new();
+    let mut home: Vec<String> = Vec::new();
+    let mut start_begin_index = 0;
+    let mut start_end_index = vec_xml_string.clone().iter().position(|x| *x == "main".to_string()).unwrap();
+    start = vec_xml_string.clone();
+    let main = start.split_off(start_end_index);
+    start.retain(|x| x.to_string() != "id".to_string() || x.to_string() != "color".to_string());
+    start
+        
 }
 
-pub fn xml_board_to_vec_string(xml: String) -> Vec<String> {
+
+
+/* The Story as found. We are currently trying to divide up strings into start, main, home_rows, and home strings.
+Once this is done, then we will iterate through each vector and build up the positions map. This should be easy, but the
+issue we are currently having is that we cannot properly filter a vector of strings */
+
+//Todo implement Loc enum by look at strings
+
+//pub fn vec_string_to_board(vec_string: Vec<String>) -> Board {
+//    
+//}//
+
+    
+pub fn deserialize_board(xml: String) -> Board {
+    let mut vec_xml_string: Vec<String> = xml_board_to_vec_xml_string(xml);
+    println!("{:#?}",vec_xml_string);
+    //let mut board: Board = vec_string_to_board(vec_string);
+    println!("New Start  {:#?}", split_up_vec_xml_string(vec_xml_string)); 
+    Board::new()
+
+}
+
+pub fn xml_board_to_vec_xml_string(xml: String) -> Vec<String> {
     // Board is a BTreeMap from Color to PawnLocs
     let mut reader = Reader::from_str(&xml);
     reader.trim_text(true);
     let mut buf = Vec::new();
     let mut txt = Vec::new();
-    println!("{:#?}", xml);
     loop {
         match reader.read_event(&mut buf) {
             Ok(Event::Start(ref e)) => {
@@ -232,21 +268,12 @@ pub fn xml_board_to_vec_string(xml: String) -> Vec<String> {
         }
         buf.clear();
     }
-    println!("{:#?}", txt);
     txt
 
 
 }
 
-pub fn string_to_color(string: String) -> Color {
-    match string.as_ref() {
-        "Red" => Color::Red,
-        "Blue" => Color::Blue,
-        "Yellow" => Color::Yellow,
-        "Green" => Color::Green,
-        _ => panic!("string to color"),             
-    }
-}
+
 
 mod tests {
     use super::*;
