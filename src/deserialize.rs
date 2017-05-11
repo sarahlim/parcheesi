@@ -204,8 +204,8 @@ pub fn build_pawn_from_strings(color: String, id: String) -> Pawn {
 
 // Current gameplan, split xml string up into start main home-rows and home
 // then use another function to build up all the info
-pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Vec<String> {
-    
+pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> () {
+    let mut positions: BTreeMap<Color,PawnLocs> = BTreeMap::new();
     let mut start: Vec<String> = Vec::new();
     let mut main: Vec<String> = Vec::new();
     let mut home_rows: Vec<String> = Vec::new();
@@ -214,16 +214,42 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Vec<String> {
     let mut start_end_index = vec_xml_string.clone().iter().position(|x| *x == "main".to_string()).unwrap();
     start = vec_xml_string.clone();
     let main = start.split_off(start_end_index);
-    start.retain(|x| x.to_string() != "id".to_string() || x.to_string() != "color".to_string());
-    start
+    start.retain(|x| *x != "start".to_string());
+    start.retain(|x| *x != "id".to_string());
+    start.retain(|x| *x != "color".to_string());
+    start.retain(|x| *x != "pawn".to_string());
+    println!("Start{:#?}",start);
+    let mut it = start.iter();
+    loop {
+        if let Some(curr_elem) = it.next() {
+        // curr elem will be a color string
+            //
+            println!("Curr elem is {}", curr_elem);
+        match curr_elem.as_ref() {
+            "Red" | "Green" | "Blue" | "Yellow" => {
+                if let Some(mut current_pawn_locs) = positions.get(&string_to_color(curr_elem.clone().to_string())){
+                println!("YO");
+                // it.next will return the pawn id. This also corresponds to the index into
+                // the pawn locs array.
+                // The following line is very not clear
+                // it.next will return an option type that contains a string.
+                // We wish to take this string and parse it into an usize, which corressponds to the id of the pawn
+                // We have to unwrap twice because we are give two calls that both return options
+                current_pawn_locs[it.next().unwrap().parse::<usize>().unwrap()] = Loc::Nest;
+                    positions.insert(string_to_color(curr_elem.clone().to_string()), current_pawn_locs)}
+            },
+            _ => break,
+                
+        };
+        } else {
+            println!("Current positions map is{:#?}", positions);
+            break; }        
+    }
+    ()
+
         
 }
 
-
-
-/* The Story as found. We are currently trying to divide up strings into start, main, home_rows, and home strings.
-Once this is done, then we will iterate through each vector and build up the positions map. This should be easy, but the
-issue we are currently having is that we cannot properly filter a vector of strings */
 
 //Todo implement Loc enum by look at strings
 
@@ -236,7 +262,7 @@ pub fn deserialize_board(xml: String) -> Board {
     let mut vec_xml_string: Vec<String> = xml_board_to_vec_xml_string(xml);
     println!("{:#?}",vec_xml_string);
     //let mut board: Board = vec_string_to_board(vec_string);
-    println!("New Start  {:#?}", split_up_vec_xml_string(vec_xml_string)); 
+    split_up_vec_xml_string(vec_xml_string); 
     Board::new()
 
 }
