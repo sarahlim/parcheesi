@@ -49,6 +49,8 @@ pub fn deserialize_start_game(request: String) -> Color {
     }
 }
 
+
+
 pub fn deserialize_moves(xml: String) -> Vec<Move> {
     let string_vec: Vec<String> = move_string_to_vec_string(xml);
     let result = vec_string_to_vec_move(string_vec);
@@ -285,15 +287,6 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
         }
     }
         
-    
-
-    
-
-    
-    
-
-
-    println!("{:#?}", board.positions);
     let mut it = start.iter();
     // start will remain the same
     
@@ -310,10 +303,41 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
 //    
 //}//
 
+
+pub fn deserialize_do_move(xml: String) -> (Board,Dice) {
+    // we need to split up the string into the board and dice components.
+    let board: Board = deserialize_board(xml.clone());
+    println!("THIS IS THE BOARD {:#?}", board.positions);
+    let dice: Dice = deserialize_dice(xml); 
+    (board, dice)
+}
+
+pub fn deserialize_dice(xml: String) -> Dice {
+    let mut string_vector: Vec<&str> = xml.split(' ').collect();
+    println!("{:#?}", string_vector);
+    let mut dice_index: usize = string_vector.iter().position(|x| *x == "<dice>").unwrap();
+    println!("{}", dice_index);
+
+    let mut dice_vector = string_vector.split_off(dice_index);
+    println!("After split {:#?}", dice_vector);
+    dice_vector.retain(|x| *x != "<dice>");
+    dice_vector.retain(|x| *x != "</dice>");
+    dice_vector.retain(|x| *x != "<die>");
+    dice_vector.retain(|x| *x != "</die>");
+    dice_vector.retain(|x| *x != "</do-move>");
+    
+    println!("After retention {:#?}", dice_vector);
+    let usize_vector: Vec<usize> = dice_vector.iter().map(|s| s.parse::<usize>().unwrap()).collect();
+    let dice: Dice = Dice {
+        rolls: usize_vector,
+        used: vec![],
+    };
+    dice                   
+}
     
 pub fn deserialize_board(xml: String) -> Board {
     let mut vec_xml_string: Vec<String> = xml_board_to_vec_xml_string(xml);
-    println!("{:#?}",vec_xml_string);
+    println!("This is the board string: {:#?}",vec_xml_string);
     //let mut board: Board = vec_string_to_board(vec_string);
     let board: Board = split_up_vec_xml_string(vec_xml_string); 
     board
@@ -330,6 +354,7 @@ pub fn xml_board_to_vec_xml_string(xml: String) -> Vec<String> {
             Ok(Event::Start(ref e)) => {
                 match e.name() {
                     b"board" => (),
+                    b"dice" => break,
                     _ => {
                         txt.push(e.unescape_and_decode(&reader)
                                      .unwrap())
@@ -407,8 +432,35 @@ mod tests {
             Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
         });
         deserialize_board(board.xmlify());
-        assert!(board == deserialize_board(board.xmlify()));
+        //assert!(false);
+        assert!(board == deserialize_board(board.xmlify() +" <dice> <die> 3 </die> <die> 4 </die> </dice>"));
 
+    }
+
+    #[test]
+    fn deserialize_dice_test() {
+        let dice: Dice = Dice {
+            rolls: vec![1,2,3,4],
+            used: vec![],
+        };
+        assert!(dice == deserialize_dice(dice.xmlify()));
+
+    }
+
+    #[test]
+    fn deserialize_do_move_test() {
+        let board: Board = Board::from(map!{
+            Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
+        });
+        let dice: Dice = Dice {
+            rolls: vec![1, 2],
+            used: vec![],
+        };
+
+        let expected: String = "<board> <start> <pawn> <color> Green </color> <id> 0 </id> </pawn> <pawn> <color> Green </color> <id> 1 </id> </pawn> <pawn> <color> Green </color> <id> 2 </id> </pawn> <pawn> <color> Green </color> <id> 3 </id> </pawn> <pawn> <color> Blue </color> <id> 0 </id> </pawn> <pawn> <color> Blue </color> <id> 1 </id> </pawn> <pawn> <color> Blue </color> <id> 2 </id> </pawn> <pawn> <color> Blue </color> <id> 3 </id> </pawn> <pawn> <color> Yellow </color> <id> 0 </id> </pawn> <pawn> <color> Yellow </color> <id> 1 </id> </pawn> <pawn> <color> Yellow </color> <id> 2 </id> </pawn> <pawn> <color> Yellow </color> <id> 3 </id> </pawn> </start> <main> <piece-loc> <pawn> <color> Red </color> <id> 2 </id> </pawn> <loc> 30 </loc> </piece-loc> <piece-loc> <pawn> <color> Red </color> <id> 3 </id> </pawn> <loc> 29 </loc> </piece-loc> </main> <home-rows> <piece-loc> <pawn> <color> Red </color> <id> 1 </id> </pawn> <loc> 103 </loc> </piece-loc> </home-rows> <home> <pawn> <color> Red </color> <id> 0 </id> </pawn> </home> </board>".to_string();
+        //assert!(deserialize_do_move(parse::xml_do_move(&board,&dice)) == (Board::new(),));
+
+        assert!((board.clone(),dice.clone()) == deserialize_do_move(parse::xml_do_move(&board,&dice)));
     }
 
 }
