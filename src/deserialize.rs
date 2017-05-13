@@ -187,7 +187,7 @@ pub fn string_to_color(string: String) -> Color {
         "Blue" => Color::Blue,
         "Yellow" => Color::Yellow,
         "Green" => Color::Green,
-        _ => panic!("string to color"),             
+        _ => panic!("string to color: {}",string),             
     }
 }
 
@@ -202,49 +202,82 @@ pub fn build_pawn_from_strings(color: String, id: String) -> Pawn {
     pawn
 }
 
+pub fn trim_xml(xml_string: &Vec<String>) -> Vec<String> {
+    let mut xml = xml_string.clone();
+    xml.retain(|x| *x != "id".to_string());
+    xml.retain(|x| *x != "color".to_string());
+    xml.retain(|x| *x != "pawn".to_string());
+    xml
+}
+
 // Current gameplan, split xml string up into start main home-rows and home
 // then use another function to build up all the info
 pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> () {
-    let mut positions: BTreeMap<Color,PawnLocs> = BTreeMap::new();
+    let mut board: Board = Board::new();
     let mut start: Vec<String> = Vec::new();
     let mut main: Vec<String> = Vec::new();
     let mut home_rows: Vec<String> = Vec::new();
     let mut home: Vec<String> = Vec::new();
-    let mut start_begin_index = 0;
+    
     let mut start_end_index = vec_xml_string.clone().iter().position(|x| *x == "main".to_string()).unwrap();
+    
+    let mut home_row_index = vec_xml_string.clone().iter().position(|x| *x == "home".to_string()).unwrap();
     start = vec_xml_string.clone();
-    let main = start.split_off(start_end_index);
-    start.retain(|x| *x != "start".to_string());
-    start.retain(|x| *x != "id".to_string());
-    start.retain(|x| *x != "color".to_string());
-    start.retain(|x| *x != "pawn".to_string());
-    println!("Start{:#?}",start);
-    let mut it = start.iter();
+
+    main = start.split_off(start_end_index);
+    let mut main_end_index = main.clone().iter().position(|x| *x == "home-rows".to_string()).unwrap();
+    home_rows = main.split_off(main_end_index);
+
+    let mut home_row_end_index = home_rows.clone().iter().position(|x| *x == "home".to_string()).unwrap();
+    home = home_rows.split_off(home_row_end_index);
+    
+    
+    
+
+
+
+    let mut main = trim_xml(&main);
+    home_rows = trim_xml(&home_rows);
+    home_rows.retain(|x| *x != "home-rows".to_string()); // Since home-rows and main have the same structure, we will concatenate them. The retain call here will knock off the front home-rows tag from the string.
+    // and go through loop
+    main.append(&mut home_rows);
+    
+    let mut it = main.iter();
+    it.next();
     loop {
-        if let Some(curr_elem) = it.next() {
-        // curr elem will be a color string
-            //
-            println!("Curr elem is {}", curr_elem);
-        match curr_elem.as_ref() {
-            "Red" | "Green" | "Blue" | "Yellow" => {
-                if let Some(mut current_pawn_locs) = positions.get(&string_to_color(curr_elem.clone().to_string())){
-                println!("YO");
-                // it.next will return the pawn id. This also corresponds to the index into
-                // the pawn locs array.
-                // The following line is very not clear
-                // it.next will return an option type that contains a string.
-                // We wish to take this string and parse it into an usize, which corressponds to the id of the pawn
-                // We have to unwrap twice because we are give two calls that both return options
-                current_pawn_locs[it.next().unwrap().parse::<usize>().unwrap()] = Loc::Nest;
-                    positions.insert(string_to_color(curr_elem.clone().to_string()), current_pawn_locs)}
+        if let Some(loc_string) = it.next() {
+        match loc_string.as_ref() {
+            "piece-loc" => {
+                println!("");
+                let curr_element = it.next().unwrap();
+                let curr_color: Color = string_to_color(curr_element.clone());
+                let mut curr_id = it.next().unwrap().parse::<usize>()
+                    .unwrap(); 
+                assert!("loc" == it.next().unwrap());
+                let curr_spot_index = it.next().unwrap().parse::<usize>().unwrap();
+                let mut positions_copy = board.positions.clone();
+                let mut pawn_locs = positions_copy.get_mut(&curr_color).unwrap();
+                pawn_locs[curr_id] = Loc::Spot { index: curr_spot_index };
+                board.positions.insert(curr_color, pawn_locs.clone());
             },
             _ => break,
-                
         };
         } else {
-            println!("Current positions map is{:#?}", positions);
-            break; }        
+            break; }
+
     }
+
+    
+
+    
+    
+
+
+    println!("{:#?}", board.positions);
+    let mut it = start.iter();
+    // start will remain the same
+    
+    
     ()
 
         
