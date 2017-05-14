@@ -5,7 +5,7 @@ use super::player::Player;
 use super::dice::Dice;
 use super::board::{Color, Board, Pawn, Loc, MoveResult};
 use super::constants::*;
-use super::parse;
+use super::serialize;
 
 
 /// Represents a game instance with connected Players.
@@ -57,7 +57,7 @@ impl<'a> Game<'a> {
             // send it over the wire. Wait, for a response. The response
             // will be the players name. Since we don't have anything implementing
             // the players name. We will drop it.
-            let xml_request = parse::xml_start_game(&clr);
+            let xml_request = serialize::xml_start_game(&clr);
             let xml_response = ""; /* receive magic */
             // Use tcp to send xml response
             // p.start_game("Place Holder".to_string());

@@ -12,7 +12,7 @@ mod dice;
 mod constants;
 mod player;
 mod autoplayers;
-mod parse;
+mod serialize;
 mod deserialize;
 mod networkplayer;
 mod networkgame;

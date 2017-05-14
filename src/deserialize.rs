@@ -8,7 +8,7 @@ use super::dice::Dice;
 use super::board::{Color, Board, Pawn, Loc, MoveResult, PawnLocs};
 use super::game::{Move, MoveType};
 use super::constants::*;
-use super::parse;
+use super::serialize;
 use super::quick_xml::reader::Reader;
 use super::quick_xml::events::Event;
 use std::io::prelude::*;
@@ -421,7 +421,7 @@ pub fn xml_board_to_vec_xml_string(xml: String) -> Vec<String> {
 
 mod tests {
     use super::*;
-    use parse;
+    use serialize;
 
     #[test]
     /// Parse then unparse and check if results are the same
@@ -455,7 +455,7 @@ mod tests {
         };
 
         let m_vec: Vec<Move> = vec![m_1.clone(), m_2.clone(), m_3.clone()];
-        let xml = parse::xml_moves(&m_vec);
+        let xml = serialize::xml_moves(&m_vec);
         let test: Vec<Move> = deserialize_moves(xml);
         assert!(m_vec == test);
     }
@@ -504,7 +504,7 @@ mod tests {
         //assert!(deserialize_do_move(parse::xml_do_move(&board,&dice)) == (Board::new(),));
 
         assert!((board.clone(), dice.clone()) ==
-                deserialize_do_move(parse::xml_do_move(&board, &dice)));
+                deserialize_do_move(serialize::xml_do_move(&board, &dice)));
     }
 
 }
