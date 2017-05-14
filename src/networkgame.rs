@@ -1,5 +1,6 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::prelude::*;
+use std::io::{Read, Write, BufReader, BufRead};
 use std::thread;
 
 
@@ -10,10 +11,18 @@ pub fn start_server() {
     let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
 
     fn handle_client(mut stream: TcpStream) {
-        let mut line = String::new();
-        stream.read_to_string(&mut line);
-    }
+        let mut reader = BufReader::new(stream);
 
+        for line in reader.by_ref().lines() {
+            let x = line.unwrap();
+            if x == "" {
+                break;
+            } else {
+                println!("{}", &x);
+            }
+        }
+    }
+    
     for stream in listener.incoming() {
 
         match stream {
@@ -25,4 +34,5 @@ pub fn start_server() {
             }
         }
     }
+
 }
