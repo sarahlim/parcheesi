@@ -3,6 +3,9 @@ use super::constants::*;
 use super::board::{Board, Pawn, Color, Path, Loc, PawnLocs};
 use super::game::{Move, MoveType};
 use super::dice::Dice;
+use super::networkplayer::NetworkPlayer;
+use std::net::{TcpStream};
+use std::io::{Read, Write, BufReader, BufWriter, BufRead};
 
 pub struct MoveFirstPawnPlayer {
     pub color: Color,
@@ -15,6 +18,7 @@ pub struct MoveLastPawnPlayer {
 pub struct XMLTestPlayer {
     pub color: Color,
     pub name: String,
+    pub stream: TcpStream,
 }
 
 impl Player for XMLTestPlayer {
@@ -25,6 +29,27 @@ impl Player for XMLTestPlayer {
     fn start_game(&self) -> () {
         //self.name; // Send this over the wire
     }
+}
+
+impl NetworkPlayer for XMLTestPlayer {
+    fn connect(&mut self) -> () {
+        self.stream = TcpStream::connect("127.0.0.1:8000").expect("Couldn't connect to the server...");
+    }
+
+    fn send(&mut self, msg: String) -> () {
+        let mut writer = BufWriter::new(&self.stream);
+        let mut response: String = String::new();
+        self.stream.write_all(msg.to_string().as_bytes());
+        writer.flush();
+    }
+
+    fn receive(&mut self) -> String {
+        let mut reader = BufReader::new(&self.stream);
+        let mut response: String = String::new();
+        reader.read_line(&mut response);
+        response
+    }
+
 }
 
 //fn get_moves_from_loc(dice: &Dice, index: usize) -> Vec<Move> {
