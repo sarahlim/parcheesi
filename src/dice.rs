@@ -16,7 +16,6 @@ use self::rand::Rng;
 /// can be used. The instance keeps track of which moves are used.
 pub struct Dice {
     pub rolls: Vec<usize>,
-    pub used: Vec<usize>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -41,10 +40,7 @@ pub enum EntryMove {
 impl Dice {
     /// Initialize a new blank instance.
     pub fn new() -> Dice {
-        Dice {
-            rolls: Vec::new(),
-            used: Vec::new(),
-        }
+        Dice { rolls: Vec::new() }
     }
 
     /// Returns xml instance of Dice
@@ -77,10 +73,7 @@ impl Dice {
             vec![d1, d2]
         };
 
-        let dice: Dice = Dice {
-            rolls: rolls,
-            used: Vec::new(),
-        };
+        let dice: Dice = Dice { rolls: rolls };
 
         (dice, is_doubles)
     }
@@ -127,14 +120,9 @@ impl Dice {
                .position(|&d| d == distance) {
             // Remove the element at the given index.
             let mut next_rolls: Vec<usize> = self.rolls.clone();
-            let used_roll: usize = next_rolls.remove(index);
-            let mut next_used: Vec<usize> = self.used.clone();
-            next_used.push(used_roll);
+            next_rolls.remove(index);
 
-            Dice {
-                rolls: next_rolls,
-                used: next_used,
-            }
+            Dice { rolls: next_rolls }
         } else {
             // Element not found.
             panic!("Distance {} is not a valid move", distance);
@@ -171,10 +159,7 @@ impl Dice {
         let mut next_rolls: Vec<usize> = self.rolls.clone();
         next_rolls.push(bonus);
 
-        Dice {
-            rolls: next_rolls,
-            used: self.used.clone(),
-        }
+        Dice { rolls: next_rolls }
     }
 }
 
@@ -206,64 +191,36 @@ mod tests {
     #[test]
     /// Enter with 1, 4.
     fn enter_1_4() {
-        let dice = Dice {
-            rolls: vec![1, 4],
-            used: Vec::new(),
-        };
+        let dice = Dice { rolls: vec![1, 4] };
         assert!(dice.can_enter() != EntryMove::NoEntry);
-        assert_eq!(dice.consume_entry_move(),
-                   Dice {
-                       rolls: Vec::new(),
-                       used: vec![1, 4],
-                   });
+        assert_eq!(dice.consume_entry_move(), Dice { rolls: Vec::new() });
     }
 
     #[test]
     /// Enter with 2, 3.
     fn enter_2_3() {
-        let dice = Dice {
-            rolls: vec![2, 3],
-            used: Vec::new(),
-        };
+        let dice = Dice { rolls: vec![2, 3] };
         assert!(dice.can_enter() != EntryMove::NoEntry);
-        assert_eq!(dice.consume_entry_move(),
-                   Dice {
-                       rolls: Vec::new(),
-                       used: vec![2, 3],
-                   });
+        assert_eq!(dice.consume_entry_move(), Dice { rolls: Vec::new() });
     }
 
     #[test]
     /// Enter two pieces with double 5's.
     fn enter_two_pieces() {
         // Enter two pieces with double 5s
-        let mut dice = Dice {
-            rolls: vec![5, 5, 6],
-            used: Vec::new(),
-        };
+        let mut dice = Dice { rolls: vec![5, 5, 6] };
         assert!(dice.can_enter() != EntryMove::NoEntry);
         dice = dice.consume_entry_move();
-        assert_eq!(dice,
-                   Dice {
-                       rolls: vec![5, 6],
-                       used: vec![5],
-                   });
+        assert_eq!(dice, Dice { rolls: vec![5, 6] });
         assert!(dice.can_enter() != EntryMove::NoEntry);
         dice = dice.consume_entry_move();
-        assert_eq!(dice,
-                   Dice {
-                       rolls: vec![6],
-                       used: vec![5, 5],
-                   });
+        assert_eq!(dice, Dice { rolls: vec![6] });
     }
 
     #[test]
     /// Cannot enter with non-5 roll.
     fn illegal_enter() {
-        let dice = Dice {
-            rolls: vec![3, 3, 6],
-            used: Vec::new(),
-        };
+        let dice = Dice { rolls: vec![3, 3, 6] };
         assert!(dice.can_enter() == EntryMove::NoEntry);
     }
 }

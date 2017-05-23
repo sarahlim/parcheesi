@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std;
 use std::fmt;
 use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
@@ -709,6 +710,104 @@ impl Board {
         // single-occupants, there is nothing to bop.
         None
     }
+
+    pub fn draw(&self) {
+        // let pawns = vec![Pawn {
+        //                      color: Color::Green,
+        //                      id: 3,
+        //                  },
+        //                  Pawn {
+        //                      color: Color::Green,
+        //                      id: 1,
+        //                  }];
+
+        // let mut ascii_board = [[""; 19]; 19];
+        // let one_pawn = vec![Pawn {
+        //                         color: Color::Green,
+        //                         id: 2,
+        //                     }];
+
+        // let mut board_str = "";
+
+        // println!("{:?}", ascii_board);
+
+        // for row in ascii_board.iter() {
+        //     for col in row.iter() {
+        //         println!("{}", col);
+        //     }
+        // }
+    }
+
+    fn draw_cell(is_safety: bool, pawns: &Vec<Pawn>) -> String {
+        // TODO: This needs to be tested.
+        // Examples:
+        //
+        // Input:
+        // Board::draw_cell(false, vec![Pawn {
+        //     color: Color::Green,
+        //     id: 3,
+        // },
+        // Pawn {
+        //     color: Color::Green,
+        //     id: 1,
+        // }];
+        // ).as_str();
+        //
+        // Expected:
+        // +--------+
+        // | G3 G1  |
+        // +--------+
+        //
+        // Input:
+        // Board::draw_cell(true, vec![Pawn {
+        //     color: Color::Green,
+        //     id: 2,
+        // }]);
+
+        // Expected:
+        // +--------+
+        // |///G2///|
+        // +--------+
+
+        let CELL_WIDTH = 8;
+
+        let repeat_x = |c: &str, num_repeats: usize| {
+            std::iter::repeat(c)
+                .take(num_repeats)
+                .collect::<String>()
+        };
+
+        let pawn_to_str = |&Pawn { color, id }| -> String {
+            let clr = match color {
+                Color::Red => "R",
+                Color::Blue => "B",
+                Color::Green => "G",
+                Color::Yellow => "Y",
+            };
+
+            clr.to_string() + &id.to_string()
+        };
+
+        let pawn_strs = pawns
+            .iter()
+            .map(pawn_to_str)
+            .collect::<Vec<String>>()
+            .join(" ");
+
+        let body_str = if is_safety {
+            format!("{:/^width$}", pawn_strs, width = CELL_WIDTH)
+        } else {
+            format!("{:^width$}", pawn_strs, width = CELL_WIDTH)
+        };
+
+        format!("{corner}{hsep}{corner}\n\
+                 {vsep}{body}{vsep}\n\
+                 {corner}{hsep}{corner}",
+                corner = "+",
+                hsep = repeat_x("-", CELL_WIDTH),
+                vsep = "|",
+                body = body_str)
+    }
 }
 
 #[cfg(test)]
@@ -730,10 +829,7 @@ mod tests {
         }
 
         fn make_dice(&self) -> Dice {
-            Dice {
-                rolls: vec![self.distance],
-                used: Vec::new(),
-            }
+            Dice { rolls: vec![self.distance] }
         }
 
         fn make_move(&self) -> Move {
@@ -974,10 +1070,13 @@ mod tests {
             Color::Green => [Loc::Spot { index: 4 }, Loc::Nest, Loc::Nest, Loc::Nest]
         });
 
+        board.draw();
+
         // Yellow can never bop Green off Red's entrance.
         assert!(board
                     .can_bop(Color::Yellow, Loc::Spot { index: 4 })
-                    .is_none());
+                    .is_some());
+        // .is_none());
     }
 
     #[test]

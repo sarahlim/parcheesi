@@ -1,10 +1,7 @@
 #[macro_use]
 mod macros;
 
-
 extern crate quick_xml;
-
-
 
 mod board;
 mod game;
@@ -25,6 +22,7 @@ fn main() {
     println!("Hello, world!");
     //    deserialize::parse_start_game(parse::xml_start_game(&board::Color::Red));
     thread::spawn(move || { networkgame::start_server(); });
+<<<<<<< HEAD
     //thread::spawn(move || { networkplayer::player_send("Test Player 1".to_string()); });  
     let mut test = autoplayers::XMLTestPlayer {
         color: board::Color::Red,
@@ -40,5 +38,11 @@ fn main() {
 
     }
         
+=======
+    networkplayer::player_send();
+    networkplayer::player_send();
+
+    loop {}
+>>>>>>> a3e9d9e28fb6ab51ca06790472d8b4a7d29ce2e4
 }
 

@@ -369,10 +369,7 @@ pub fn deserialize_dice(xml: String) -> Dice {
         .iter()
         .map(|s| s.parse::<usize>().unwrap())
         .collect();
-    let dice: Dice = Dice {
-        rolls: usize_vector,
-        used: vec![],
-    };
+    let dice: Dice = Dice { rolls: usize_vector };
     dice
 }
 
@@ -482,10 +479,7 @@ mod tests {
 
     #[test]
     fn deserialize_dice_test() {
-        let dice: Dice = Dice {
-            rolls: vec![1, 2, 3, 4],
-            used: vec![],
-        };
+        let dice: Dice = Dice { rolls: vec![1, 2, 3, 4] };
         assert!(dice == deserialize_dice(dice.xmlify()));
 
     }
@@ -495,10 +489,7 @@ mod tests {
         let board: Board = Board::from(map!{
             Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
         });
-        let dice: Dice = Dice {
-            rolls: vec![1, 2],
-            used: vec![],
-        };
+        let dice: Dice = Dice { rolls: vec![1, 2] };
 
         let expected: String = "<board> <start> <pawn> <color> Green </color> <id> 0 </id> </pawn> <pawn> <color> Green </color> <id> 1 </id> </pawn> <pawn> <color> Green </color> <id> 2 </id> </pawn> <pawn> <color> Green </color> <id> 3 </id> </pawn> <pawn> <color> Blue </color> <id> 0 </id> </pawn> <pawn> <color> Blue </color> <id> 1 </id> </pawn> <pawn> <color> Blue </color> <id> 2 </id> </pawn> <pawn> <color> Blue </color> <id> 3 </id> </pawn> <pawn> <color> Yellow </color> <id> 0 </id> </pawn> <pawn> <color> Yellow </color> <id> 1 </id> </pawn> <pawn> <color> Yellow </color> <id> 2 </id> </pawn> <pawn> <color> Yellow </color> <id> 3 </id> </pawn> </start> <main> <piece-loc> <pawn> <color> Red </color> <id> 2 </id> </pawn> <loc> 30 </loc> </piece-loc> <piece-loc> <pawn> <color> Red </color> <id> 3 </id> </pawn> <loc> 29 </loc> </piece-loc> </main> <home-rows> <piece-loc> <pawn> <color> Red </color> <id> 1 </id> </pawn> <loc> 103 </loc> </piece-loc> </home-rows> <home> <pawn> <color> Red </color> <id> 0 </id> </pawn> </home> </board>".to_string();
         //assert!(deserialize_do_move(parse::xml_do_move(&board,&dice)) == (Board::new(),));

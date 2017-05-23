@@ -306,13 +306,7 @@ mod tests {
             dice: Dice::new(),
             board: Board::new(),
         };
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![1, 4],
-                 used: vec![],
-             },
-             false)
-        };
+        let roll_fn = |_| (Dice { rolls: vec![1, 4] }, false);
         let (next_board, next_dice) =
             game.give_turn(&Color::Green, &p_1, roll_fn);
         let green_entry = Board::get_entrance(&Color::Green);
@@ -370,13 +364,7 @@ mod tests {
                                Loc::Nest,
                                Loc::Nest];
         let b0 = Board::new();
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![1, 4],
-                 used: vec![],
-             },
-             false)
-        };
+        let roll_fn = |_| (Dice { rolls: vec![1, 4] }, false);
         b0.positions
             .clone()
             .insert(Color::Green, green_pawn_locs);
@@ -384,10 +372,7 @@ mod tests {
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
         let mut game: Game = Game {
             players: BTreeMap::new(),
-            dice: Dice {
-                rolls: vec![1, 4],
-                used: Vec::new(),
-            },
+            dice: Dice { rolls: vec![1, 4] },
             board: b0,
         };
         for i in 0..4 {
@@ -423,19 +408,10 @@ mod tests {
             .insert(Color::Green, green_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![1, 4],
-                 used: vec![],
-             },
-             false)
-        };
+        let roll_fn = |_| (Dice { rolls: vec![1, 4] }, false);
         let mut game: Game = Game {
             players: BTreeMap::new(),
-            dice: Dice {
-                rolls: vec![1, 4],
-                used: Vec::new(),
-            },
+            dice: Dice { rolls: vec![1, 4] },
             board: b0,
         };
         for i in 0..1 {
@@ -473,19 +449,10 @@ mod tests {
             .insert(Color::Red, red_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![2, 4],
-                 used: vec![],
-             },
-             false)
-        };
+        let roll_fn = |_| (Dice { rolls: vec![2, 4] }, false);
         let mut game: Game = Game {
             players: BTreeMap::new(),
-            dice: Dice {
-                rolls: vec![2, 4],
-                used: Vec::new(),
-            },
+            dice: Dice { rolls: vec![2, 4] },
             board: b0,
         };
         for i in 0..1 {
@@ -516,19 +483,10 @@ mod tests {
             .insert(Color::Red, red_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![2, 4],
-                 used: vec![],
-             },
-             false)
-        };
+        let roll_fn = |_| (Dice { rolls: vec![2, 4] }, false);
         let mut game: Game = Game {
             players: BTreeMap::new(),
-            dice: Dice {
-                rolls: vec![2, 4],
-                used: Vec::new(),
-            },
+            dice: Dice { rolls: vec![2, 4] },
             board: b0,
         };
         for i in 0..1 {
@@ -560,19 +518,10 @@ mod tests {
             .insert(Color::Red, red_pawn_locs);
         let players = [&p1];
         let colors = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-        let roll_fn = |_| {
-            (Dice {
-                 rolls: vec![2, 4],
-                 used: vec![],
-             },
-             false)
-        };
+        let roll_fn = |_| (Dice { rolls: vec![2, 4] }, false);
         let mut game: Game = Game {
             players: BTreeMap::new(),
-            dice: Dice {
-                rolls: vec![2, 4],
-                used: Vec::new(),
-            },
+            dice: Dice { rolls: vec![2, 4] },
             board: b0,
         };
         for i in 0..1 {

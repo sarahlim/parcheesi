@@ -191,10 +191,7 @@ mod test {
                              Loc::Home,
             ]
         });
-        let test_dice = Dice {
-            rolls: vec![5, 5],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![5, 5] };
         let expected_move = Move {
             m_type: MoveType::MoveMain {
                 start: 58,
@@ -216,6 +213,8 @@ Green: 67, 19, Home, 36
 Blue: 18, Home, Nest, 13
 // Expect: MoveMain { start: 36, distance: 1 }
 */
+
+
 
 
 
@@ -249,10 +248,7 @@ Blue: 18, Home, Nest, 13
                             }
             ]                    
         });
-        let test_dice = Dice {
-            rolls: vec![1, 2],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![1, 2] };
         let expected_move = Move {
             m_type: MoveType::MoveMain {
                 start: 36,
@@ -307,10 +303,7 @@ Blue: 50
                             Loc::Nest,
                             Loc::Nest]
         });
-        let test_dice = Dice {
-            rolls: vec![3, 2],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![3, 2] };
         let expected_move = Move {
             m_type: MoveType::MoveMain {
                 start: 34,
@@ -364,10 +357,7 @@ Blue: 50
                             Loc::Nest,
                             Loc::Nest]
         });
-        let test_dice = Dice {
-            rolls: vec![3, 2],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![3, 2] };
         let expected_move = Move {
             m_type: MoveType::MoveMain {
                 start: 19,
@@ -420,10 +410,7 @@ Blue: 50
                             Loc::Nest,
                             Loc::Nest]
         });
-        let test_dice = Dice {
-            rolls: vec![3, 2],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![3, 2] };
         let expected_move = Move {
             m_type: MoveType::MoveMain {
                 start: 47,
@@ -492,10 +479,7 @@ Yellow: 22, 22
                               Loc::Nest]
                               
         });
-        let test_dice = Dice {
-            rolls: vec![3, 2],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![3, 2] };
         let expected_move = Move {
             m_type: MoveType::EnterPiece,
             pawn: Pawn {
@@ -547,10 +531,7 @@ Yellow: 22, 22
                               Loc::Nest]
                               
         });
-        let test_dice = Dice {
-            rolls: vec![3, 3],
-            used: vec![],
-        };
+        let test_dice = Dice { rolls: vec![3, 3] };
         assert!(test_player
                     .do_move(test_board, test_dice)
                     .pop() == None);
