@@ -1,10 +1,7 @@
 #[macro_use]
 mod macros;
 
-
 extern crate quick_xml;
-
-
 
 mod board;
 mod game;
@@ -25,8 +22,6 @@ fn main() {
     thread::spawn(move || { networkgame::start_server(); });
     networkplayer::player_send();
     networkplayer::player_send();
-    loop {
 
-
-    }
+    loop {}
 }

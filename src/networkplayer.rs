@@ -9,7 +9,7 @@ pub fn player_send() {
         stream.write(b"TEST MESSAGE");
         let mut message = Vec::new();
         stream.read_to_end(&mut message);
-        println!("{:#?}",&message);            
+        println!("{:#?}", &message);
     }
 
 }

@@ -95,10 +95,7 @@ mod test {
 
     #[test]
     fn xmlify_dice() {
-        let dice = Dice {
-            rolls: vec![1, 2],
-            used: vec![],
-        };
+        let dice = Dice { rolls: vec![1, 2] };
         assert!(dice.xmlify() == "<dice> <die> 1 </die> <die> 2 </die> </dice>")
     }
 
@@ -173,10 +170,7 @@ mod test {
         let board: Board = Board::from(map!{
             Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
         });
-        let dice: Dice = Dice {
-            rolls: vec![1, 2],
-            used: vec![],
-        };
+        let dice: Dice = Dice { rolls: vec![1, 2] };
 
         let expected: String = "<board> <start> <pawn> <color> Green </color> <id> 0 </id> </pawn> <pawn> <color> Green </color> <id> 1 </id> </pawn> <pawn> <color> Green </color> <id> 2 </id> </pawn> <pawn> <color> Green </color> <id> 3 </id> </pawn> <pawn> <color> Blue </color> <id> 0 </id> </pawn> <pawn> <color> Blue </color> <id> 1 </id> </pawn> <pawn> <color> Blue </color> <id> 2 </id> </pawn> <pawn> <color> Blue </color> <id> 3 </id> </pawn> <pawn> <color> Yellow </color> <id> 0 </id> </pawn> <pawn> <color> Yellow </color> <id> 1 </id> </pawn> <pawn> <color> Yellow </color> <id> 2 </id> </pawn> <pawn> <color> Yellow </color> <id> 3 </id> </pawn> </start> <main> <piece-loc> <pawn> <color> Red </color> <id> 2 </id> </pawn> <loc> 30 </loc> </piece-loc> <piece-loc> <pawn> <color> Red </color> <id> 3 </id> </pawn> <loc> 29 </loc> </piece-loc> </main> <home-rows> <piece-loc> <pawn> <color> Red </color> <id> 1 </id> </pawn> <loc> 103 </loc> </piece-loc> </home-rows> <home> <pawn> <color> Red </color> <id> 0 </id> </pawn> </home> </board>".to_string();
         assert!(board.xmlify() == expected);
