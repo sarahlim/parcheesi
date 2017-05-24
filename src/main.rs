@@ -28,7 +28,6 @@ fn main() {
     };
     let name: String = test_player.start_game();
     // Probably should change this just to be void
-    let mut color: String = test_player.receive();
     let color: String = test_player.receive();
     let assigned_color: Color = deserialize::deserialize_start_game(color);
     test_player.color = assigned_color;

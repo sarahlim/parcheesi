@@ -42,9 +42,9 @@ pub fn deserialize_start_game(request: String) -> Color {
               .unwrap()
               .as_ref() {
         "Red" | "red" => Color::Red,
-        "Blue"| "blue"  => Color::Blue,
+        "Blue" | "blue" => Color::Blue,
         "Yellow" | "yellow" => Color::Yellow,
-        "Green" | "green"  => Color::Green,
+        "Green" | "green" => Color::Green,
         _ => panic!("That's not a color"),
     }
 }
