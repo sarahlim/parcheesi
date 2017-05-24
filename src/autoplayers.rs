@@ -4,7 +4,7 @@ use super::board::{Board, Pawn, Color, Path, Loc, PawnLocs};
 use super::game::{Move, MoveType};
 use super::dice::Dice;
 use super::networkplayer::NetworkPlayer;
-use std::net::{TcpStream};
+use std::net::TcpStream;
 use std::io::{Read, Write, BufReader, BufWriter, BufRead};
 
 pub struct MoveEndPawnPlayer {
@@ -36,17 +36,22 @@ impl NetworkPlayer for XMLTestPlayer {
 
     fn send(&mut self, msg: String) -> () {
         let mut writer = BufWriter::new(&mut self.stream);
-        writer.write_all(msg.as_bytes()).expect("Player could not write");
-        writer.flush().expect("Player could not flush");
+        writer
+            .write_all(msg.as_bytes())
+            .expect("Player could not write");
+        writer
+            .flush()
+            .expect("Player could not flush");
     }
 
     fn receive(&mut self) -> String {
         let mut reader = BufReader::new(&self.stream);
         let mut response: String = String::new();
-        reader.read_line(&mut response).expect("Player could not read");
+        reader
+            .read_line(&mut response)
+            .expect("Player could not read");
         response
     }
-
 }
 
 impl MoveEndPawnPlayer {
@@ -168,6 +173,7 @@ mod test {
        Blue: 18, Home, Nest, 13
     // Expect: MoveMain { start: 36, distance: 1 }
     */
+
 
     #[test]
     fn do_move_choose_farthest_pawn() {
