@@ -1052,8 +1052,6 @@ mod tests {
             Color::Green => [Loc::Spot { index: 4 }, Loc::Nest, Loc::Nest, Loc::Nest]
         });
 
-        board.draw();
-
         // Yellow can never bop Green off Red's entrance.
         assert!(board
                     .can_bop(Color::Yellow, Loc::Spot { index: 4 })

@@ -5,7 +5,6 @@ use super::dice::Dice;
 use super::networkplayer::NetworkPlayer;
 use std::net::TcpStream;
 use std::io::{Write, BufReader, BufWriter, BufRead};
-use super::serialize;
 
 pub struct XMLTestPlayer {
     pub color: Color,
@@ -15,14 +14,12 @@ pub struct XMLTestPlayer {
 
 impl Player for XMLTestPlayer {
     fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
-        vec![]
+        let mut mini_moves: Vec<Move> = Vec::new();
+        mini_moves
     }
 
     fn start_game(&mut self) -> String {
-        let xml: String = serialize::xml_start_game_response(&self);
-        self.send(xml + "\n");
-        let name = self.name.to_string();
-        self.name.to_string()            
+        self.name.to_string()
     }
 }
 
@@ -96,7 +93,6 @@ impl Player for MoveEndPawnPlayer {
             sorted_pawn_locs.reverse();
         }
 
-        println!("Sorted pawn locs are {:#?}", sorted_pawn_locs);
         'outer: for &(pawn_id, loc) in sorted_pawn_locs.iter() {
             for &mini_move in dice.rolls.iter() {
                 let m = Move {
@@ -147,6 +143,8 @@ fn move_last_pawn_player(name: String, color: Color) -> MoveEndPawnPlayer {
 }
 
 mod test {
+    use super::*;
+
     #[test]
     fn do_move_basic() {
         let test_player = move_first_pawn_player("Test".to_string(),
