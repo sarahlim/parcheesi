@@ -16,14 +16,20 @@ pub fn start_server() {
         println!("Client Connected");
 
         let mut writer = BufWriter::new(&stream);
-        writer.write_all("Red\n".as_bytes()).expect("could not write");
-        writer.flush().expect("could not flush");
+        writer
+            .write_all("Red\n".as_bytes())
+            .expect("could not write");
+        writer
+            .flush()
+            .expect("could not flush");
 
         let mut reader = BufReader::new(&stream);
         let mut response = String::new();
-        reader.read_line(&mut response).expect("could not read");
+        reader
+            .read_line(&mut response)
+            .expect("could not read");
         println!("Server received {}", response);
-    
+
     }
 
     for stream in listener.incoming() {

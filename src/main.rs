@@ -14,8 +14,8 @@ mod deserialize;
 mod networkplayer;
 mod networkgame;
 
-use std::{thread,time};
-use std::net::{TcpStream};
+use std::{thread, time};
+use std::net::TcpStream;
 use networkplayer::NetworkPlayer;
 use board::Color;
 
@@ -28,11 +28,11 @@ fn main() {
     };
     let response: String = test_player.receive();
     println!("{}", response);
-    let test_string: String = "<name>".to_string() + &test_player.name + "</name> \n";
+    let test_string: String = "<name>".to_string() + &test_player.name +
+                              "</name> \n";
     test_player.send(test_string);
     loop {
         let moves = test_player.receive();
-        println!("{}",moves);
+        println!("{}", moves);
     }
 }
-
