@@ -10,6 +10,7 @@ use super::game::{Move, MoveType};
 use super::constants::*;
 use super::quick_xml::reader::Reader;
 use super::quick_xml::events::Event;
+use std::net::TcpStream;
 use std::io::prelude::*;
 use super::deserialize::*;
 
@@ -78,6 +79,7 @@ mod test {
         let test_player: XMLTestPlayer = XMLTestPlayer {
             color: Color::Green,
             name: "Sven".to_string(),
+            stream: TcpStream::connect("127.0.0.1:8000").unwrap(),
         };
         assert!(xml_start_game_response(&test_player) == "<name> Sven </name>");
     }

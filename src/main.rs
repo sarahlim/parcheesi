@@ -31,6 +31,8 @@ fn main() {
     let test_string: String = "<name>".to_string() + &test_player.name + "</name> \n";
     test_player.send(test_string);
     loop {
+        let moves = test_player.receive();
+        println!("{}",moves);
     }
 }
 
