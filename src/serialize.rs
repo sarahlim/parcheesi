@@ -2,6 +2,7 @@
 
 
 use std::collections::BTreeMap;
+use std::net::TcpStream;
 use super::player::Player;
 use super::autoplayers::XMLTestPlayer;
 use super::dice::Dice;
@@ -79,7 +80,7 @@ mod test {
         let test_player: XMLTestPlayer = XMLTestPlayer {
             color: Color::Green,
             name: "Sven".to_string(),
-            stream: TcpStream::connect("127.0.0.1:8000").unwrap(),
+            stream: TcpStream::connect("127.0.0.1:8000").expect("Player could not connect"),
         };
         assert!(xml_start_game_response(&test_player) == "<name> Sven </name>");
     }
