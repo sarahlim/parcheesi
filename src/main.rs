@@ -17,21 +17,24 @@ mod networkgame;
 use std::net::TcpStream;
 use networkplayer::NetworkPlayer;
 use board::Color;
+use player::Player;
 
 fn main() {
     println!("Hello, world!");
     let mut test_player = autoplayers::XMLTestPlayer {
-        color: Color::Red,
-        name: "Johann".to_string(),
+        color: Color::Red, //This is meaningless
+        name: "Lloyd".to_string(),
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
-    let response: String = test_player.receive();
-    println!("{}", response);
-    let test_string: String = "<name>".to_string() + &test_player.name +
-                              "</name> \n";
-    test_player.send(test_string);
+    let name: String = test_player.start_game();
+    // Probably should change this just to be void
+    let mut color: String = test_player.receive();
+    let color: String = test_player.receive();
+    let assigned_color: Color = deserialize::deserialize_start_game(color);
+    test_player.color = assigned_color;
+    println!("I am {}", test_player.color);
     loop {
         let moves = test_player.receive();
-        println!("{}", moves);
+        println!("Player received: {}", moves);
     }
 }

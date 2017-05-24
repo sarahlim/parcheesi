@@ -5,6 +5,7 @@ use super::dice::Dice;
 use super::networkplayer::NetworkPlayer;
 use std::net::TcpStream;
 use std::io::{Write, BufReader, BufWriter, BufRead};
+use super::serialize;
 
 pub struct XMLTestPlayer {
     pub color: Color,
@@ -17,7 +18,9 @@ impl Player for XMLTestPlayer {
         vec![]
     }
 
-    fn start_game(&self) -> String {
+    fn start_game(&mut self) -> String {
+        let xml: String = serialize::xml_start_game_response(&self);
+        self.send(xml + "\n");
         let name = self.name.to_string();
         self.name.to_string()            
     }
@@ -74,7 +77,7 @@ impl MoveEndPawnPlayer {
 }
 
 impl Player for MoveEndPawnPlayer {
-    fn start_game(&self) -> String {
+    fn start_game(&mut self) -> String {
         self.name.to_string()
     }
 

@@ -41,10 +41,10 @@ pub fn deserialize_start_game(request: String) -> Color {
     match txt.pop()
               .unwrap()
               .as_ref() {
-        "Red" => Color::Red,
-        "Blue" => Color::Blue,
-        "Yellow" => Color::Yellow,
-        "Green" => Color::Green,
+        "Red" | "red" => Color::Red,
+        "Blue"| "blue"  => Color::Blue,
+        "Yellow" | "yellow" => Color::Yellow,
+        "Green" | "green"  => Color::Green,
         _ => panic!("That's not a color"),
     }
 }
