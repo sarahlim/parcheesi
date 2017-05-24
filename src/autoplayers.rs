@@ -4,11 +4,12 @@ use super::board::{Board, Pawn, Color, Path, Loc, PawnLocs};
 use super::game::{Move, MoveType};
 use super::dice::Dice;
 use super::networkplayer::NetworkPlayer;
-use std::net::{TcpStream};
+use std::net::TcpStream;
 use std::io::{Read, Write, BufReader, BufWriter, BufRead};
 
 pub struct MoveEndPawnPlayer {
     pub color: Color,
+    pub name: String,
     should_reverse_path: bool,
 }
 
@@ -23,11 +24,10 @@ impl Player for XMLTestPlayer {
         vec![]
     }
 
-    fn start_game(&self) -> () {
-        //self.name; // Send this over the wire
+    fn start_game(&self) -> String {
+        self.name.to_string()
     }
 }
-
 
 impl NetworkPlayer for XMLTestPlayer {
     fn connect(&mut self) -> () {
@@ -36,22 +36,31 @@ impl NetworkPlayer for XMLTestPlayer {
 
     fn send(&mut self, msg: String) -> () {
         let mut writer = BufWriter::new(&mut self.stream);
-        writer.write_all(msg.as_bytes()).expect("Player could not write");
-        writer.flush().expect("Player could not flush");
+        writer
+            .write_all(msg.as_bytes())
+            .expect("Player could not write");
+        writer
+            .flush()
+            .expect("Player could not flush");
     }
 
     fn receive(&mut self) -> String {
         let mut reader = BufReader::new(&self.stream);
         let mut response: String = String::new();
-        reader.read_line(&mut response).expect("Player could not read");
+        reader
+            .read_line(&mut response)
+            .expect("Player could not read");
         response
     }
-
 }
 
 impl MoveEndPawnPlayer {
-    fn new(color: Color, should_reverse_path: bool) -> MoveEndPawnPlayer {
+    fn new(name: String,
+           color: Color,
+           should_reverse_path: bool)
+           -> MoveEndPawnPlayer {
         MoveEndPawnPlayer {
+            name: name,
             color: color,
             should_reverse_path: should_reverse_path,
         }
@@ -63,7 +72,9 @@ impl MoveEndPawnPlayer {
 // a base MoveEndPawnPlayer, which takes in a boolean indicating
 // whether or not to reverse the pawn list in do_move.
 impl Player for MoveEndPawnPlayer {
-    fn start_game(&self) -> () {}
+    fn start_game(&self) -> String {
+        self.name.to_string()
+    }
 
     /// Always try to move the furthest pawn.
     /// If none of the pawns can be moved with any of the mini-moves,
@@ -120,14 +131,14 @@ impl Player for MoveEndPawnPlayer {
     }
 }
 
-fn MoveFirstPawnPlayer(color: Color) -> MoveEndPawnPlayer {
+fn MoveFirstPawnPlayer(name: String, color: Color) -> MoveEndPawnPlayer {
     // To move the furthest ahead pawn, we need to iterate over pawns
     // in reverse order, so we set should_reverse_list to true.
-    MoveEndPawnPlayer::new(color, true)
+    MoveEndPawnPlayer::new(name, color, true)
 }
 
-fn MoveLastPawnPlayer(color: Color) -> MoveEndPawnPlayer {
-    MoveEndPawnPlayer::new(color, false)
+fn MoveLastPawnPlayer(name: String, color: Color) -> MoveEndPawnPlayer {
+    MoveEndPawnPlayer::new(name, color, false)
 }
 
 mod test {
@@ -136,7 +147,7 @@ mod test {
 
     #[test]
     fn do_move_basic() {
-        let test_player = MoveFirstPawnPlayer(Color::Green);
+        let test_player = MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Spot {
                 index: 58,
@@ -169,9 +180,16 @@ mod test {
     // Expect: MoveMain { start: 36, distance: 1 }
     */
 
+
+
+
+
+
+
+
     #[test]
     fn do_move_choose_farthest_pawn() {
-        let test_player = MoveFirstPawnPlayer(Color::Green);
+        let test_player = MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
                 Color::Green => [Loc::Spot {
                     index: 67,
@@ -220,7 +238,8 @@ mod test {
 */
     #[test]
     fn do_move_choose_second_pawn_if_first_blockaded() {
-        let test_player: MoveEndPawnPlayer = MoveFirstPawnPlayer(Color::Green);
+        let test_player: MoveEndPawnPlayer =
+            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -273,7 +292,8 @@ mod test {
     */
     #[test]
     fn do_move_choose_second_pawn_if_first_overshoot_second_blockaded() {
-        let test_player: MoveEndPawnPlayer = MoveFirstPawnPlayer(Color::Green);
+        let test_player: MoveEndPawnPlayer =
+            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -327,7 +347,8 @@ mod test {
     */
     #[test]
     fn do_move_choose_first_pawn_and_bop() {
-        let test_player: MoveEndPawnPlayer = MoveFirstPawnPlayer(Color::Green);
+        let test_player: MoveEndPawnPlayer =
+            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -364,9 +385,8 @@ mod test {
                 color: Color::Green,
             },
         };
-        assert!(test_player
-                    .do_move(test_board, test_dice)
-                    .pop() == Some(expected_move));
+        assert_eq!(test_player.do_move(test_board, test_dice),
+                   vec![expected_move]);
     }
     /*
 
@@ -382,7 +402,8 @@ mod test {
 
     #[test]
     fn do_move_enter_if_no_others_can_move() {
-        let test_player: MoveEndPawnPlayer = MoveFirstPawnPlayer(Color::Green);
+        let test_player: MoveEndPawnPlayer =
+            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -443,7 +464,8 @@ mod test {
     */
     #[test]
     fn do_move_no_possible_moves() {
-        let test_player: MoveEndPawnPlayer = MoveFirstPawnPlayer(Color::Green);
+        let test_player: MoveEndPawnPlayer =
+            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {

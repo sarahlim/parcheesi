@@ -143,8 +143,8 @@ impl<'a> Game<'a> {
             let mut turn_done =
                 Board::has_valid_moves(&temp_board, &temp_dice, color);
 
-            // This inner loop manages mini-moves. The loop breaks when there
-            // are no valid mini-moves left for the player.
+            // This inner loop manages mini-moves.
+            // The loop breaks when there are no valid mini-moves left for the player.
             while !turn_done {
                 let mut chosen_moves: Vec<Move> =
                     player.do_move(temp_board.clone(), temp_dice.clone());
@@ -283,8 +283,8 @@ mod tests {
     }
 
     impl Player for TestPlayer {
-        fn start_game(&self) -> () {
-            println!("TestPlayer is color: ");
+        fn start_game(&self) -> String {
+            "TestPlayer".to_string()
         }
 
         fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
