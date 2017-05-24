@@ -140,46 +140,65 @@ impl<'a> Game<'a> {
             // copy of the board and game state.
             let mut temp_board: Board = self.board.clone();
             let mut temp_dice: Dice = rolled_dice;
-            let mut turn_done =
-                Board::has_valid_moves(&temp_board, &temp_dice, color);
 
-            // This inner loop manages mini-moves.
-            // The loop breaks when there are no valid mini-moves left for the player.
-            while !turn_done {
-                let mut chosen_moves: Vec<Move> =
-                    player.do_move(temp_board.clone(), temp_dice.clone());
+            let mut chosen_moves: Vec<Move> =
+                player.do_move(temp_board.clone(), temp_dice.clone());
 
-                if let Some(chosen_move) = chosen_moves.pop() {
-                    if Board::is_valid_move(&temp_board,
-                                            &temp_dice,
-                                            &chosen_move) {
-                        let move_result: Result<MoveResult,
-                                            &'static str> =
-                        temp_board.handle_move(chosen_move);
+            // Check moves one at a time, using the temp board.
+            for &chosen_move in chosen_moves.iter() {
+                let is_valid_mini_move: bool =
+                    Board::is_valid_move(&temp_board, &temp_dice, &chosen_move);
 
-                        match move_result {
-                            Ok(MoveResult(next_board, bonus)) => {
-                                // Update temp_board, and add bonus if it exists.
-                                temp_board = next_board;
-                                if let Some(amt) = bonus {
-                                    temp_dice = temp_dice.give_bonus(amt);
-                                }
-                            }
-                            Err(e) => panic!("Move failed"),
-                        }
-                    } else {
-                        // Move is invalid, player cheated.
-                        panic!("Invalid move");
-                    }
+                let move_result: Result<MoveResult,
+                                        &'static str> =
+                    temp_board.handle_move(chosen_move);
+
+                if !is_valid_mini_move {
+                    panic!("Cheater cheater pumpkin eater");
                 }
-                // Check whether there are valid moves left.
-                turn_done =
-                    Board::has_valid_moves(&temp_board, &temp_dice, color);
+
+                // Check if the mini-move is valid at the turn level.
+                match move_result {
+                    Ok(MoveResult(next_board, bonus)) => {
+                        let is_valid_for_turn: bool =
+                            temp_board.is_valid_turn(&next_board,
+                                                     &temp_dice,
+                                                     *color);
+
+                        if !is_valid_for_turn {
+                            panic!("Cheated");
+                        }
+
+                        // Update temp_board, and add bonus if it exists.
+                        temp_board = next_board;
+
+                        match chosen_move.m_type {
+                            MoveType::EnterPiece => {
+                                temp_dice = temp_dice.consume_entry_move();
+                            }
+                            MoveType::MoveMain { distance, .. } |
+                            MoveType::MoveHome { distance, .. } => {
+                                temp_dice = temp_dice
+                                    .consume_normal_move(distance);
+                            }
+                        };
+
+                        if let Some(amt) = bonus {
+                            temp_dice = temp_dice.give_bonus(amt);
+                        }
+                    }
+                    Err(e) => panic!("Move failed"),
+                };
             }
 
             // Now we want to validate the entire turn.
-            if !self.board
-                    .is_valid_turn(&temp_board, &temp_dice, *color) {
+            let has_moves_remaining: bool =
+                Board::has_valid_moves(&temp_board, &temp_dice, color);
+            let is_valid_turn: bool =
+                self.board
+                    .is_valid_turn(&temp_board, &temp_dice, *color);
+
+            if has_moves_remaining || !is_valid_turn {
                 panic!("Invalid turn");
             }
 
@@ -218,7 +237,7 @@ pub enum MoveType {
     EnterPiece,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Move {
     pub m_type: MoveType,
     pub pawn: Pawn,
