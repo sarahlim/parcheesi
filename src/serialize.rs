@@ -11,12 +11,8 @@ use super::game::{Move, MoveType};
 use super::constants::*;
 use super::quick_xml::reader::Reader;
 use super::quick_xml::events::Event;
-use std::net::TcpStream;
 use std::io::prelude::*;
 use super::deserialize::*;
-
-
-
 
 /// Current thoughts on the xml things. If a something is a struct, implement
 /// an xmlify method for easy access. In this file, all the xmlify calls will

@@ -1,4 +1,4 @@
-use super::board::{Color, Board};
+use super::board::Board;
 use super::game::Move;
 use super::dice::Dice;
 
