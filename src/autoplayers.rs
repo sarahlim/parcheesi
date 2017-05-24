@@ -25,7 +25,8 @@ impl Player for XMLTestPlayer {
     }
 
     fn start_game(&self) -> String {
-        self.name.to_string()
+        let name = self.name.to_string();
+        self.name.to_string()            
     }
 }
 
