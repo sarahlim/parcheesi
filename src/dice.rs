@@ -114,7 +114,7 @@ impl Dice {
 
     /// Consume a mini-move from the list of available rolls, marking it as used.
     /// Returns a new struct with updated lists.
-    fn consume_normal_move(&self, distance: usize) -> Dice {
+    pub fn consume_normal_move(&self, distance: usize) -> Dice {
         if let Some(index) = self.rolls
                .iter()
                .position(|&d| d == distance) {
@@ -131,7 +131,7 @@ impl Dice {
 
     /// Consume mini-move(s) necessary to enter a pawn.
     /// Returns a new struct with updated lists.
-    fn consume_entry_move(&self) -> Dice {
+    pub fn consume_entry_move(&self) -> Dice {
         match self.can_enter() {
             EntryMove::WithFive => self.consume_normal_move(5),
             EntryMove::WithSum(x, y) => {

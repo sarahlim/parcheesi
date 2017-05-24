@@ -8,6 +8,7 @@ mod game;
 mod dice;
 mod constants;
 mod player;
+mod gametree;
 mod autoplayers;
 mod serialize;
 mod deserialize;

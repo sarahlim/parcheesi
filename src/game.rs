@@ -218,7 +218,7 @@ pub enum MoveType {
     EnterPiece,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Move {
     pub m_type: MoveType,
     pub pawn: Pawn,

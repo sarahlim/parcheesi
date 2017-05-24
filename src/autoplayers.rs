@@ -1,7 +1,8 @@
 use super::player::Player;
-use super::board::{Board, Pawn, Color, Loc, PawnLocs};
+use super::board::{Board, Pawn, Color, Loc, PawnLocs, MoveResult};
 use super::game::{Move, MoveType};
 use super::dice::Dice;
+use super::gametree::GameTree;
 use super::networkplayer::NetworkPlayer;
 use std::net::TcpStream;
 use std::io::{Write, BufReader, BufWriter, BufRead};
@@ -14,8 +15,64 @@ pub struct XMLTestPlayer {
 
 impl Player for XMLTestPlayer {
     fn do_move(&self, board: Board, dice: Dice) -> Vec<Move> {
-        let mut mini_moves: Vec<Move> = Vec::new();
-        mini_moves
+        // Create a vector to store the moves we'll eventually return.
+        let mut moves: Vec<Move> = Vec::new();
+
+        // Create temporary copies of the board and dice,
+        // so we can build up a sequence of moves.
+        let mut temp_board: Board = board.clone();
+        let mut temp_dice: Dice = dice.clone();
+
+        // Next, we want to loop until we've exhausted all possible
+        // moves.
+
+        // options is an iterator over all possible next moves.
+        let mut options: GameTree = GameTree::new(board, dice, self.color);
+
+        // In the future we will do something more intelligent but
+        // for now just take the first legal move.
+        loop {
+            if let Some(chosen_move) = options.next() {
+                let move_result: Result<MoveResult,
+                                        &'static str> =
+                    temp_board.handle_move(chosen_move);
+
+                match move_result {
+                    Ok(MoveResult(next_board, bonus)) => {
+                        temp_board = next_board;
+
+                        match chosen_move.m_type {
+                            MoveType::EnterPiece => {
+                                temp_dice = temp_dice.consume_entry_move();
+                            }
+                            MoveType::MoveMain { distance, .. } |
+                            MoveType::MoveHome { distance, .. } => {
+                                temp_dice = temp_dice
+                                    .consume_normal_move(distance);
+                            }
+                        };
+
+                        if let Some(amt) = bonus {
+                            temp_dice = temp_dice.give_bonus(amt);
+                        }
+
+                        // Add the move to the vector.
+                        moves.push(chosen_move);
+                    }
+                    Err(_) => unreachable!(),
+                };
+            } else {
+                // No more options for moves.
+                break;
+            }
+
+            // Regenerate mini-moves given the new board.
+            options = GameTree::new(temp_board.clone(),
+                                    temp_dice.clone(),
+                                    self.color);
+        }
+
+        moves
     }
 
     fn start_game(&mut self) -> String {
