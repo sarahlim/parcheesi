@@ -35,16 +35,15 @@ impl NetworkPlayer for XMLTestPlayer {
     }
 
     fn send(&mut self, msg: String) -> () {
-        let mut writer = BufWriter::new(&self.stream);
-        let mut response: String = String::new();
-        self.stream.write_all(msg.to_string().as_bytes());
-        writer.flush();
+        let mut writer = BufWriter::new(&mut self.stream);
+        writer.write_all(msg.as_bytes()).expect("Player could not write");
+        writer.flush().expect("Player could not flush");
     }
 
     fn receive(&mut self) -> String {
         let mut reader = BufReader::new(&self.stream);
         let mut response: String = String::new();
-        reader.read_line(&mut response);
+        reader.read_line(&mut response).expect("Player could not read");
         response
     }
 

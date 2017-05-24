@@ -13,29 +13,17 @@ pub fn start_server() {
     let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
 
     fn handle_client(mut stream: TcpStream) {
-        let mut writer = BufWriter::new(&stream);
-        let mut line = String::new();
-        writer.write_all(serialize::xml_start_game(&Color::Red).as_bytes());
-        if let Err(e) = writer.flush() {
-            panic!("AHHHHH");
-        }
-        let mut response = String::new();
-        let mut reader = BufReader::new(&stream);
-        for line in reader.by_ref().lines() {
-            let mut response = line.unwrap();
-            println!("Server received {}", response);
-        }
-        //let mut response = String::new();
-        //reader.read_line(&mut response);
-        //println!("Server received {}", response);
-        //println!("Do I reach here");
-        //writer.write(b"writing");
-        //writer.write(b"writing");
-        //writer.write(b"writing");
+        println!("Client Connected");
 
-        
-        
-        
+        let mut writer = BufWriter::new(&stream);
+        writer.write_all("Red\n".as_bytes()).expect("could not write");
+        writer.flush().expect("could not flush");
+
+        let mut reader = BufReader::new(&stream);
+        let mut response = String::new();
+        reader.read_line(&mut response).expect("could not read");
+        println!("Server received {}", response);
+    
     }
 
     for stream in listener.incoming() {

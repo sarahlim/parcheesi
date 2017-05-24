@@ -17,32 +17,20 @@ mod networkgame;
 use std::{thread,time};
 use std::net::{TcpStream};
 use networkplayer::NetworkPlayer;
+use board::Color;
 
 fn main() {
     println!("Hello, world!");
-    //    deserialize::parse_start_game(parse::xml_start_game(&board::Color::Red));
-    thread::spawn(move || { networkgame::start_server(); });
-<<<<<<< HEAD
-    //thread::spawn(move || { networkplayer::player_send("Test Player 1".to_string()); });  
-    let mut test = autoplayers::XMLTestPlayer {
-        color: board::Color::Red,
-        name: "JOHN".to_string(),
-        stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect"),            
+    let mut test_player = autoplayers::XMLTestPlayer {
+        color: Color::Red,
+        name: "Johann".to_string(),
+        stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
-    let string = NetworkPlayer::receive(&mut test);
-    println!("I received {}",string);
-    NetworkPlayer::send(&mut test, "Me".to_string());
-    
-
+    let response: String = test_player.receive();
+    println!("{}", response);
+    let test_string: String = "<name>".to_string() + &test_player.name + "</name> \n";
+    test_player.send(test_string);
     loop {
-
     }
-        
-=======
-    networkplayer::player_send();
-    networkplayer::player_send();
-
-    loop {}
->>>>>>> a3e9d9e28fb6ab51ca06790472d8b4a7d29ce2e4
 }
 
