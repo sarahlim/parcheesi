@@ -181,6 +181,7 @@ mod test {
     */
 
 
+
     #[test]
     fn do_move_choose_farthest_pawn() {
         let test_player = MoveFirstPawnPlayer("Test".to_string(), Color::Green);
