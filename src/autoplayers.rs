@@ -7,12 +7,6 @@ use super::networkplayer::NetworkPlayer;
 use std::net::TcpStream;
 use std::io::{Read, Write, BufReader, BufWriter, BufRead};
 
-pub struct MoveEndPawnPlayer {
-    pub color: Color,
-    pub name: String,
-    should_reverse_path: bool,
-}
-
 pub struct XMLTestPlayer {
     pub color: Color,
     pub name: String,
@@ -54,6 +48,18 @@ impl NetworkPlayer for XMLTestPlayer {
     }
 }
 
+/// MoveEndPawnPlayer tries to move pawns starting from the most (or least) advanced.
+/// Since the only difference between MoveFirstPawnPlayer and MoveLastPawnPlayer is whether
+/// we iterate over pawns from front to back or the reverse, we define
+/// a base MoveEndPawnPlayer, which takes in a boolean indicating
+/// whether or not to reverse the pawn list in do_move.
+
+pub struct MoveEndPawnPlayer {
+    pub color: Color,
+    pub name: String,
+    should_reverse_path: bool,
+}
+
 impl MoveEndPawnPlayer {
     fn new(name: String,
            color: Color,
@@ -67,10 +73,6 @@ impl MoveEndPawnPlayer {
     }
 }
 
-// Since the only difference between MoveFirstPawnPlayer and MoveLastPawnPlayer is whether
-// we iterate over pawns from front to back or the reverse, we define
-// a base MoveEndPawnPlayer, which takes in a boolean indicating
-// whether or not to reverse the pawn list in do_move.
 impl Player for MoveEndPawnPlayer {
     fn start_game(&self) -> String {
         self.name.to_string()
@@ -172,16 +174,12 @@ mod test {
                     .do_move(test_board, test_dice)
                     .pop() == Some(expected_move));
     }
+
     // Chooses furthest pawn
-    /*
-       [1, 2]
-       Green: 67, 19, Home, 36
-       Blue: 18, Home, Nest, 13
+    // [1, 2]
+    // Green: 67, 19, Home, 36
+    // Blue: 18, Home, Nest, 13
     // Expect: MoveMain { start: 36, distance: 1 }
-    */
-
-
-
     #[test]
     fn do_move_choose_farthest_pawn() {
         let test_player = MoveFirstPawnPlayer("Test".to_string(), Color::Green);
@@ -222,15 +220,13 @@ mod test {
                     .do_move(test_board, test_dice)
                     .pop() == Some(expected_move));
     }
-    /*   
-    // Chooses second pawn if first pawn is blockaded
-    [3, 2]
-    Green: Nest, 34, 47, 19
-    Red: 49, 49
-    Blue: 50
-    // Expect: MoveMain { start: 34, distance: 3 }
 
-*/
+    // Chooses second pawn if first pawn is blockaded
+    // [3, 2]
+    // Green: Nest, 34, 47, 19
+    // Red: 49, 49
+    // Blue: 50
+    // Expect: MoveMain { start: 34, distance: 3 }
     #[test]
     fn do_move_choose_second_pawn_if_first_blockaded() {
         let test_player: MoveEndPawnPlayer =
@@ -277,14 +273,13 @@ mod test {
                     .do_move(test_board, test_dice)
                     .pop() == Some(expected_move));
     }
-    /*
+
     // Chooses third pawn if first pawn would overshoot home and second is blockaded
-    [3, 2]
-    Green: Nest, 19, 406, 47
-    Red: 49, 49
-    Blue: 50
+    // [3, 2]
+    // Green: Nest, 19, 406, 47
+    // Red: 49, 49
+    // Blue: 50
     // Expect: MoveMain { start: 19, distance: 3 }
-    */
     #[test]
     fn do_move_choose_second_pawn_if_first_overshoot_second_blockaded() {
         let test_player: MoveEndPawnPlayer =
@@ -332,14 +327,12 @@ mod test {
                     .pop() == Some(expected_move));
     }
 
-    /*
     // Chooses first pawn, leading to a bop
-    [3, 2]
-    Green: Nest, 34, 47, 19
-    Red: 49
-    Blue: 50
-    // Expect: MoveMain { start: 47, distance: 2 } 
-    */
+    // [3, 2]
+    // Green: Nest, 34, 47, 19
+    // Red: 49
+    // Blue: 50
+    // Expect: MoveMain { start: 47, distance: 2 }
     #[test]
     fn do_move_choose_first_pawn_and_bop() {
         let test_player: MoveEndPawnPlayer =
@@ -383,18 +376,15 @@ mod test {
         assert_eq!(test_player.do_move(test_board, test_dice),
                    vec![expected_move]);
     }
-    /*
 
     // Enter, if no other pawns can be moved
-    [3, 2]
-    Green: Nest, 19, 406, 47
-    Red: 49, 49
-    Blue: 50, 21, 
-    Yellow: 22, 22
+    // [3, 2]
+    // Green: Nest, 19, 406, 47
+    // Red: 49, 49
+    // Blue: 50, 21,
+    // Yellow: 22, 22
     // Expect: EnterPiece
     // I changed the test so that 21 was also unable to be used, else 19 could move there
-    */
-
     #[test]
     fn do_move_enter_if_no_others_can_move() {
         let test_player: MoveEndPawnPlayer =
@@ -449,14 +439,13 @@ mod test {
                     .do_move(test_board, test_dice)
                     .pop() == Some(expected_move));
     }
-    /*
+
     // Return empty array if no moves are valid
-    [3, 3]
-    Green: Nest, 19, 406, 47
-    Blue: 50 //TODOis 50 a safety square, could be trouble if yes
-    Yellow: 22, 22
+    // [3, 3]
+    // Green: Nest, 19, 406, 47
+    // Blue: 50 //TODOis 50 a safety square, could be trouble if yes
+    // Yellow: 22, 22
     // Expect: []
-    */
     #[test]
     fn do_move_no_possible_moves() {
         let test_player: MoveEndPawnPlayer =
@@ -494,7 +483,4 @@ mod test {
                     .do_move(test_board, test_dice)
                     .pop() == None);
     }
-
-
-
 }
