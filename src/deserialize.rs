@@ -223,11 +223,6 @@ pub fn trim_xml(xml_string: &Vec<String>) -> Vec<String> {
 /// We start we a new board and build up the board's position BTreeMap
 pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
     let mut board: Board = Board::new();
-    let mut start: Vec<String> = Vec::new();
-    let mut main: Vec<String> = Vec::new();
-    let mut home_rows: Vec<String> = Vec::new();
-    let mut home: Vec<String> = Vec::new();
-
     // These repeated indexing and split off are all organize the vector of strings into vector of strings that all correspond to same class
     // of spots on the board
     let mut start_end_index = vec_xml_string
@@ -236,38 +231,34 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
         .position(|x| *x == "main".to_string())
         .unwrap();
 
-
-
     let mut home_row_index = vec_xml_string
         .clone()
         .iter()
         .position(|x| *x == "home".to_string())
         .unwrap();
-    start = vec_xml_string.clone();
+    let mut start = vec_xml_string.clone();
 
-    main = start.split_off(start_end_index);
+    let mut main = start.split_off(start_end_index);
     let mut main_end_index = main.clone()
         .iter()
         .position(|x| *x == "home-rows".to_string())
         .unwrap();
-    home_rows = main.split_off(main_end_index);
+    let mut home_rows = main.split_off(main_end_index);
 
     let mut home_row_end_index = home_rows
         .clone()
         .iter()
         .position(|x| *x == "home".to_string())
         .unwrap();
-    home = home_rows.split_off(home_row_end_index);
+    let mut home = home_rows.split_off(home_row_end_index);
 
-
-
-
-
-
+    // Since home-rows and main have the same structure in our board representation,
+    // we will concatenate them.
+    // The retain call here will knock off the front home-rows tag from the string,
+    // and go through loop.
     let mut main = trim_xml(&main);
     home_rows = trim_xml(&home_rows);
-    home_rows.retain(|x| *x != "home-rows".to_string()); // Since home-rows and main have the same structure in our board representation, we will concatenate them. The retain call here will knock off the front home-rows tag from the string.
-    // and go through loop
+    home_rows.retain(|x| *x != "home-rows".to_string());
     main.append(&mut home_rows);
 
     let mut it = main.iter();

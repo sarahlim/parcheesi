@@ -1,11 +1,10 @@
 use super::player::Player;
-use super::constants::*;
-use super::board::{Board, Pawn, Color, Path, Loc, PawnLocs};
+use super::board::{Board, Pawn, Color, Loc, PawnLocs};
 use super::game::{Move, MoveType};
 use super::dice::Dice;
 use super::networkplayer::NetworkPlayer;
 use std::net::TcpStream;
-use std::io::{Read, Write, BufReader, BufWriter, BufRead};
+use std::io::{Write, BufReader, BufWriter, BufRead};
 
 pub struct XMLTestPlayer {
     pub color: Color,
@@ -49,7 +48,7 @@ impl NetworkPlayer for XMLTestPlayer {
 }
 
 /// MoveEndPawnPlayer tries to move pawns starting from the most (or least) advanced.
-/// Since the only difference between MoveFirstPawnPlayer and MoveLastPawnPlayer is whether
+/// Since the only difference between move_first_pawn_player and move_last_pawn_player is whether
 /// we iterate over pawns from front to back or the reverse, we define
 /// a base MoveEndPawnPlayer, which takes in a boolean indicating
 /// whether or not to reverse the pawn list in do_move.
@@ -133,23 +132,21 @@ impl Player for MoveEndPawnPlayer {
     }
 }
 
-fn MoveFirstPawnPlayer(name: String, color: Color) -> MoveEndPawnPlayer {
+fn move_first_pawn_player(name: String, color: Color) -> MoveEndPawnPlayer {
     // To move the furthest ahead pawn, we need to iterate over pawns
     // in reverse order, so we set should_reverse_list to true.
     MoveEndPawnPlayer::new(name, color, true)
 }
 
-fn MoveLastPawnPlayer(name: String, color: Color) -> MoveEndPawnPlayer {
+fn move_last_pawn_player(name: String, color: Color) -> MoveEndPawnPlayer {
     MoveEndPawnPlayer::new(name, color, false)
 }
 
 mod test {
-    use super::*;
-
-
     #[test]
     fn do_move_basic() {
-        let test_player = MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+        let test_player = move_first_pawn_player("Test".to_string(),
+                                                 Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Spot {
                 index: 58,
@@ -182,7 +179,8 @@ mod test {
     // Expect: MoveMain { start: 36, distance: 1 }
     #[test]
     fn do_move_choose_farthest_pawn() {
-        let test_player = MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+        let test_player = move_first_pawn_player("Test".to_string(),
+                                                 Color::Green);
         let test_board = Board::from(map!{
                 Color::Green => [Loc::Spot {
                     index: 67,
@@ -230,7 +228,7 @@ mod test {
     #[test]
     fn do_move_choose_second_pawn_if_first_blockaded() {
         let test_player: MoveEndPawnPlayer =
-            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+            move_first_pawn_player("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -283,7 +281,7 @@ mod test {
     #[test]
     fn do_move_choose_second_pawn_if_first_overshoot_second_blockaded() {
         let test_player: MoveEndPawnPlayer =
-            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+            move_first_pawn_player("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -336,7 +334,7 @@ mod test {
     #[test]
     fn do_move_choose_first_pawn_and_bop() {
         let test_player: MoveEndPawnPlayer =
-            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+            move_first_pawn_player("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -388,7 +386,7 @@ mod test {
     #[test]
     fn do_move_enter_if_no_others_can_move() {
         let test_player: MoveEndPawnPlayer =
-            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+            move_first_pawn_player("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {
@@ -449,7 +447,7 @@ mod test {
     #[test]
     fn do_move_no_possible_moves() {
         let test_player: MoveEndPawnPlayer =
-            MoveFirstPawnPlayer("Test".to_string(), Color::Green);
+            move_first_pawn_player("Test".to_string(), Color::Green);
         let test_board = Board::from(map!{
             Color::Green => [Loc::Nest,
             Loc::Spot {

@@ -14,7 +14,6 @@ mod deserialize;
 mod networkplayer;
 mod networkgame;
 
-use std::{thread, time};
 use std::net::TcpStream;
 use networkplayer::NetworkPlayer;
 use board::Color;
