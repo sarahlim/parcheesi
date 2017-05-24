@@ -384,6 +384,7 @@ impl Board {
     }
 
     /// Determines whether the given board, dice, and color has any valid moves left.
+    /// TODO: Does this preserve legality within turns?
     pub fn has_valid_moves(board: &Board, dice: &Dice, color: &Color) -> bool {
         if dice.all_used() {
             return false;
@@ -391,7 +392,13 @@ impl Board {
 
         let pawns: PawnLocs = board.get_pawns_by_color(color);
 
+        // Takes a roll, and checks whether any of the
+        // pawns are eligible to move by that distance.
         let valid_for_roll = |&r| -> bool {
+
+            // Helper function takes a pawn and its location,
+            // and checks whether that pawn is eligible to move
+            // the distance given by the outer closure.
             let build_move_and_check =
                 |(pawn_id, &loc): (usize, &Loc)| -> bool {
                     let pawn = Pawn {
@@ -426,6 +433,8 @@ impl Board {
                     Board::is_valid_move(board, dice, &mv)
                 };
 
+            // Finally iterate over all pawns and check whether they
+            // would form a valid move.
             pawns
                 .iter()
                 .enumerate()
@@ -486,6 +495,7 @@ impl Board {
                    board.full_safety_square(finish_loc, color) {
                     return false;
                 }
+
                 // Chosen move distance is a valid mini-move.
                 if !dice.contains(&distance) {
                     return false;
@@ -495,12 +505,10 @@ impl Board {
                 let blockades: Vec<Loc> = board.get_blockades();
                 let mut move_path = Path::started(color.clone(), start_loc)
                     .take(distance);
-
                 let has_blockade_on_path: bool =
                     move_path.any(|path_loc| blockades.contains(&path_loc));
 
                 if has_blockade_on_path {
-                    println!("has block");
                     return false;
                 }
 
@@ -711,32 +719,6 @@ impl Board {
         None
     }
 
-    pub fn draw(&self) {
-        // let pawns = vec![Pawn {
-        //                      color: Color::Green,
-        //                      id: 3,
-        //                  },
-        //                  Pawn {
-        //                      color: Color::Green,
-        //                      id: 1,
-        //                  }];
-
-        // let mut ascii_board = [[""; 19]; 19];
-        // let one_pawn = vec![Pawn {
-        //                         color: Color::Green,
-        //                         id: 2,
-        //                     }];
-
-        // let mut board_str = "";
-
-        // println!("{:?}", ascii_board);
-
-        // for row in ascii_board.iter() {
-        //     for col in row.iter() {
-        //         println!("{}", col);
-        //     }
-        // }
-    }
 
     fn draw_cell(is_safety: bool, pawns: &Vec<Pawn>) -> String {
         // TODO: This needs to be tested.
