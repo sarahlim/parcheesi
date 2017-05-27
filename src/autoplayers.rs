@@ -78,7 +78,8 @@ impl Player for XMLTestPlayer {
         moves
     }
 
-    fn start_game(&mut self) -> String {
+    fn start_game(&self) -> String {        
+        self.send(serialize::xml_start_game_response(&self));
         self.name.to_string()
     }
 }
@@ -88,8 +89,9 @@ impl NetworkPlayer for XMLTestPlayer {
         self.stream = TcpStream::connect("127.0.0.1:8000").expect("Couldn't connect to the server...");
     }
 
-    fn send(&mut self, msg: String) -> () {
-        let mut writer = BufWriter::new(&mut self.stream);
+    fn send(&self, mut msg: String) -> () {
+        let mut writer = BufWriter::new(&self.stream);
+        msg.push_str("\n");
         writer
             .write_all(msg.as_bytes())
             .expect("Player could not write");
@@ -98,7 +100,7 @@ impl NetworkPlayer for XMLTestPlayer {
             .expect("Player could not flush");
     }
 
-    fn receive(&self) {
+    fn receive(&mut self) -> () {
         let mut reader = BufReader::new(&self.stream);
         let mut response: String = String::new();
         reader
@@ -106,12 +108,17 @@ impl NetworkPlayer for XMLTestPlayer {
             .expect("Player could not read");
         let decision: XmlMessage = deserialize::deserialize_decision(response.clone());
         match decision {
-            XmlMessage::StartGame => { self.start_game();
+            XmlMessage::StartGame => {
+                self.color = deserialize::deserialize_start_game(response);
+                self.start_game();
+                
                                        ()},
             XmlMessage::DoMove => {
                 // The deserialize method will return a tuple with the board and the dice, so we must decompose that
                 // before we proceed
+                println!("rec do move");
                 let (board,dice) =  deserialize::deserialize_do_move(response);
+                println!("Our made up board is {:#?}", board);
                 let moves_vec = self.do_move(board,dice); //TODO move the write to do_move?
                 self.send(serialize::xml_moves(&moves_vec));
                 ()
@@ -119,8 +126,6 @@ impl NetworkPlayer for XMLTestPlayer {
             XmlMessage::DoublesPenalty => self.doubles_penalty(),
             XmlMessage::Error => panic!("Could not parse message"),        
         };
-        ()
-
     }
 }
 
@@ -150,7 +155,7 @@ impl MoveEndPawnPlayer {
 }
 
 impl Player for MoveEndPawnPlayer {
-    fn start_game(&mut self) -> String {
+    fn start_game(&self) -> String {
         self.name.to_string()
     }
 

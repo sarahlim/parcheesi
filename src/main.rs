@@ -23,18 +23,25 @@ use player::Player;
 fn main() {
     println!("Hello, world!");
     let mut test_player = autoplayers::XMLTestPlayer {
-        color: Color::Red, //This is meaningless
+        color: Color::Blue, //This is meaningless
         name: "Lloyd".to_string(),
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
-   // let name: String = test_player.start_game();
+    test_player.receive();
+    loop {
+        test_player.receive();
+    }
+    //let name: String = test_player.start_game();
     // Probably should change this just to be void
- //   let color: String = test_player.receive();
- //   let assigned_color: Color = deserialize::deserialize_start_game(color);
- //   test_player.color = assigned_color;
-  //  println!("I am {}", test_player.color);
- //   loop {
-  //      let moves = test_player.receive();
-   //     println!("Player received: {}", moves);
-   // }
+    //let color: String = test_player.receive();
+    //println!("Player got {}", color);
+    //let assigned_color: Color = deserialize::deserialize_start_game(color);
+    //test_player.color = assigned_color;
+    //println!("I am {}", test_player.color);
+    //test_player.send("<name>Yo YO yo it is I </name>\n".to_string());
+    //println!("Do we get here");
+    //loop {
+      //  let moves = test_player.receive();
+      //  println!("Player received: {}", moves);
+    //}
 }
