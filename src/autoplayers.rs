@@ -4,6 +4,9 @@ use super::game::{Move, MoveType};
 use super::dice::Dice;
 use super::gametree::GameTree;
 use super::networkplayer::NetworkPlayer;
+use super::deserialize::XmlMessage;
+use super::deserialize;
+use super::serialize;
 use std::net::TcpStream;
 use std::io::{Write, BufReader, BufWriter, BufRead};
 
@@ -95,13 +98,29 @@ impl NetworkPlayer for XMLTestPlayer {
             .expect("Player could not flush");
     }
 
-    fn receive(&mut self) -> String {
+    fn receive(&self) {
         let mut reader = BufReader::new(&self.stream);
         let mut response: String = String::new();
         reader
             .read_line(&mut response)
             .expect("Player could not read");
-        response
+        let decision: XmlMessage = deserialize::deserialize_decision(response.clone());
+        match decision {
+            XmlMessage::StartGame => { self.start_game();
+                                       ()},
+            XmlMessage::DoMove => {
+                // The deserialize method will return a tuple with the board and the dice, so we must decompose that
+                // before we proceed
+                let (board,dice) =  deserialize::deserialize_do_move(response);
+                let moves_vec = self.do_move(board,dice); //TODO move the write to do_move?
+                self.send(serialize::xml_moves(&moves_vec));
+                ()
+            },
+            XmlMessage::DoublesPenalty => self.doubles_penalty(),
+            XmlMessage::Error => panic!("Could not parse message"),        
+        };
+        ()
+
     }
 }
 

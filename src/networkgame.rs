@@ -13,8 +13,9 @@ pub fn start_server() {
 
         let mut writer = BufWriter::new(&stream);
         writer
-            .write_all("Red\n".as_bytes())
-            .expect("could not write");
+            .write_all("Red\n".as_bytes());
+            
+
         writer
             .flush()
             .expect("could not flush");

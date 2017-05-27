@@ -27,14 +27,14 @@ fn main() {
         name: "Lloyd".to_string(),
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
-    let name: String = test_player.start_game();
+   // let name: String = test_player.start_game();
     // Probably should change this just to be void
-    let color: String = test_player.receive();
-    let assigned_color: Color = deserialize::deserialize_start_game(color);
-    test_player.color = assigned_color;
-    println!("I am {}", test_player.color);
-    loop {
-        let moves = test_player.receive();
-        println!("Player received: {}", moves);
-    }
+ //   let color: String = test_player.receive();
+ //   let assigned_color: Color = deserialize::deserialize_start_game(color);
+ //   test_player.color = assigned_color;
+  //  println!("I am {}", test_player.color);
+ //   loop {
+  //      let moves = test_player.receive();
+   //     println!("Player received: {}", moves);
+   // }
 }

@@ -14,6 +14,38 @@ use super::quick_xml::events::Event;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum XmlMessage {
+    StartGame,
+    DoMove,
+    DoublesPenalty,
+    Error
+        
+}
+
+/// This function will decide which deserialization functino gets called given an xml string
+pub fn deserialize_decision(request: String) -> XmlMessage {
+    let mut reader = Reader::from_str(&request);
+    reader.trim_text(true);
+    let mut buf = Vec::new();
+    loop {
+        match reader.read_event(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                match e.name() {
+                    b"start-game" => {return XmlMessage::StartGame},
+                    b"do-move" => {return XmlMessage::DoMove},
+                    b"doubles-penalty" => {return XmlMessage::DoublesPenalty},
+                    _ => {return XmlMessage::Error},
+                }
+            }
+            _ => {return XmlMessage::Error},
+        }
+    }
+                
+
+}
+
+
 /// This function will receive a string about a new game starting. It will
 pub fn deserialize_start_game(request: String) -> Color {
     let mut reader = Reader::from_str(&request);
@@ -410,6 +442,20 @@ pub fn xml_board_to_vec_xml_string(xml: String) -> Vec<String> {
 mod tests {
     use super::*;
     use serialize;
+
+
+    #[test]
+    /// Test the initial decision of the parser to send to right deserializer
+    fn deserialize_decision_test() {
+        let start_response: String = "<start-game> egal".to_string();
+        let do_move: String = "<do-move> egal".to_string();
+        let doubles_penalty: String = "<doubles-penalty egal".to_string();
+        assert!(XmlMessage::StartGame == deserialize_decision(start_response));
+        assert!(XmlMessage::DoMove == deserialize_decision(do_move));
+        assert!(XmlMessage::DoublesPenalty == deserialize_decision(doubles_penalty));
+        assert!(XmlMessage::Error == deserialize_decision("<not> a tag".to_string()));
+        
+    }
 
     #[test]
     /// Parse then unparse and check if results are the same
