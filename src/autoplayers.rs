@@ -106,13 +106,13 @@ impl NetworkPlayer for XMLTestPlayer {
         reader
             .read_line(&mut response)
             .expect("Player could not read");
+        println!("Player received {}", response);
         let decision: XmlMessage = deserialize::deserialize_decision(response.clone());
         match decision {
             XmlMessage::StartGame => {
                 self.color = deserialize::deserialize_start_game(response);
                 self.start_game();
-                
-                                       ()},
+                ()},
             XmlMessage::DoMove => {
                 // The deserialize method will return a tuple with the board and the dice, so we must decompose that
                 // before we proceed

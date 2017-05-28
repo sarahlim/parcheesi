@@ -408,9 +408,11 @@ pub fn deserialize_do_move(xml: String) -> (Board, Dice) {
 }
 
 pub fn deserialize_dice(xml: String) -> Dice {
+
+    /*
     let mut string_vector: Vec<&str> = xml.split(' ').collect();
+    println!("deserializing dice"); 
     // This collapses the string into a vector
-    println!("{:#?}", string_vector);
     let mut dice_index: usize = string_vector
         .iter()
         .position(|x| *x == "<dice>")
@@ -427,6 +429,37 @@ pub fn deserialize_dice(xml: String) -> Dice {
 
     println!("After retention {:#?}", dice_vector);
     let usize_vector: Vec<usize> = dice_vector
+        .iter()
+        .map(|s| s.parse::<usize>().unwrap())
+        .collect();
+    let dice: Dice = Dice { rolls: usize_vector };
+    dice
+     */
+    let mut reader = Reader::from_str(&xml);
+    reader.trim_text(true);
+    let mut buf = Vec::new();
+    let mut txt = Vec::new();
+    let mut dice_p = false; // WE have reached the part of the xml string where the dice live
+    loop {
+        match reader.read_event(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                match e.name() {
+                    b"dice" => dice_p = true,
+                    _ => (),
+                };
+            }
+            Ok(Event::Text(e)) => {
+                if dice_p {
+                    txt.push(e.unescape_and_decode(&reader).unwrap());
+                }
+            },
+            Ok(Event::Eof) => break,
+            Err(e) => panic!("Dice Parse Error {}", e),
+            _ => (),
+        }
+        buf.clear()
+    }
+    let usize_vector: Vec<usize> = txt
         .iter()
         .map(|s| s.parse::<usize>().unwrap())
         .collect();
@@ -555,7 +588,7 @@ mod tests {
     /// Parse real game board
     fn deserialize_board_basic_test() {
         let board: Board = Board::new();
-        let test_string = "<board> <start> <pawn> <color> yellow </color> <id> 3 </id> </pawn> <pawn> <color> yellow </color> <id> 2 </id> </pawn> <pawn> <color> yellow </color> <id> 1 </id> </pawn> <pawn> <color> yellow </color> <id> 0 </id> </pawn> <pawn> <color> red </color> <id> 3 </id> </pawn> <pawn> <color> red </color> <id> 2 </id> </pawn> <pawn> <color> red </color> <id> 1 </id> </pawn> <pawn> <color> red </color> <id> 0 </id> </pawn> <pawn> <color> green </color> <id> 3 </id> </pawn> <pawn> <color> green </color> <id> 2 </id> </pawn> <pawn> <color> green </color> <id> 1 </id> </pawn> <pawn> <color> green </color> <id> 0 </id> </pawn> <pawn> <color> blue </color> <id> 3 </id> </pawn> <pawn> <color> blue </color> <id> 2 </id> </pawn> <pawn> <color> blue </color> <id> 1 </id> </pawn> <pawn> <color> blue </color> <id> 0 </id> </pawn> </start> <main> </main> <home-rows> </home-rows> <home> </home> </board>".to_string();
+        let test_string = "<board> <start> <pawn> <color> yellow </color> <id> 3 </id> </pawn> <pawn> <color> yellow </color> <id> 2 </id> </pawn> <pawn> <color> yellow </color> <id> 1 </id> </pawn> <pawn> <color> yellow </color> <id> 0 </id> </pawn> <pawn> <color> red </color> <id> 3 </id> </pawn> <pawn> <color> red </color> <id> 2 </id> </pawn> <pawn> <color> red </color> <id> 1 </id> </pawn> <pawn> <color> red </color> <id> 0 </id> </pawn> <pawn> <color> green </color> <id> 3 </id> </pawn> <pawn> <color> green </color> <id> 2 </id> </pawn> <pawn> <color> green </color> <id> 1 </id> </pawn> <pawn> <color> green </color> <id> 0 </id></pawn> <pawn> <color> blue </color> <id> 3 </id> </pawn> <pawn> <color> blue </color> <id> 2 </id> </pawn> <pawn> <color> blue </color> <id> 1 </id> </pawn> <pawn> <color> blue </color> <id> 0 </id> </pawn> </start> <main> </main> <home-rows></home-rows> <home> </home> </board>".to_string();
 
         //assert!(false);
         assert!(board == deserialize_board(test_string));
@@ -567,6 +600,15 @@ mod tests {
         let dice: Dice = Dice { rolls: vec![1, 2, 3, 4] };
         assert!(dice == deserialize_dice(dice.xmlify()));
 
+    }
+    #[test]
+    fn deserialize_do_move_test1() {
+        let result: String = "<do-move><board><start><pawn><color>yellow</color><id>3</id></pawn><pawn><color>yellow</color><id>2</id></pawn><pawn><color>yellow</color><id>1</id></pawn><pawn><color>yellow</color><id>0</id></pawn><pawn><color>red</color><id>3</id></pawn><pawn><color>red</color><id>2</id></pawn><pawn><color>red</color><id>1</id></pawn><pawn><color>red</color><id>0</id></pawn><pawn><color>green</color><id>3</id></pawn><pawn><color>green</color><id>2</id></pawn><pawn><color>green</color><id>1</id></pawn><pawn><color>green</color><id>0</id></pawn><pawn><color>blue</color><id>3</id></pawn><pawn><color>blue</color><id>2</id></pawn><pawn><color>blue</color><id>1</id></pawn><pawn><color>blue</color><id>0</id></pawn></start><main></main><home-rows></home-rows><home></home></board><dice><die>2</die><die>3</die></dice></do-move>".to_string();
+        let (board,dice) = deserialize_do_move(result);
+        let test_dice: Dice = Dice { rolls: vec![2,3] };
+        let test_board: Board = Board::new();
+        assert!(test_dice == dice);
+        assert!(test_board == board);
     }
 
     #[test]
