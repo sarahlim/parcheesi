@@ -302,7 +302,7 @@ mod tests {
     }
 
     impl Player for TestPlayer {
-        fn start_game(&mut self) -> String {
+        fn start_game(&self) -> String {
             "TestPlayer".to_string()
         }
 

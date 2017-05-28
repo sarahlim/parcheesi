@@ -8,7 +8,8 @@ use super::dice::Dice;
 use super::board::{Color, Board, Pawn, Loc, MoveResult, PawnLocs};
 use super::game::{Move, MoveType};
 use super::constants::*;
-use super::serialize;
+use super::serialize::*;
+use super::board::*;
 use super::quick_xml::reader::Reader;
 use super::quick_xml::events::Event;
 use std::io::prelude::*;
@@ -221,11 +222,11 @@ pub fn vec_string_to_vec_move(vec_string: Vec<String>) -> Vec<Move> {
 }
 
 pub fn string_to_color(string: String) -> Color {
-    match string.as_ref() {
-        "Red" => Color::Red,
-        "Blue" => Color::Blue,
-        "Yellow" => Color::Yellow,
-        "Green" => Color::Green,
+    match string.to_lowercase().as_ref() {
+        "red" => Color::Red,
+        "blue" => Color::Blue,
+        "yellow" => Color::Yellow,
+        "green" => Color::Green,
         _ => panic!("string to color: {}", string),             
     }
 }
@@ -291,7 +292,7 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
     let mut main = trim_xml(&main);
     home_rows = trim_xml(&home_rows);
     home_rows.retain(|x| *x != "home-rows".to_string());
-    main.append(&mut home_rows);
+    //main.append(&mut home_rows);
 
 
     // TODO, Robby's board handles things differently than our boards.
@@ -311,10 +312,11 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
                         .parse::<usize>()
                         .unwrap();
                     assert!("loc" == it.next().unwrap());
-                    let curr_spot_index = it.next()
+                    let robby_spot_index = it.next()
                         .unwrap()
                         .parse::<usize>()
                         .unwrap();
+                    let curr_spot_index = (robby_spot_index + 50) % 68; // Translate robby position to our position in main ring
                     let mut positions_copy = board.positions.clone();
                     let mut pawn_locs = positions_copy
                         .get_mut(&curr_color)
@@ -330,7 +332,39 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
             break;
         }
     }
-
+    let mut it = home_rows.iter();
+    loop {
+        if let Some(loc_string) = it.next() {
+            match loc_string.as_ref() {
+                "piece-loc" => {
+                    let curr_element = it.next().unwrap();
+                    let curr_color: Color = string_to_color(curr_element
+                                                                .clone());
+                    let mut curr_id = it.next()
+                        .unwrap()
+                        .parse::<usize>()
+                        .unwrap();
+                    assert!("loc" == it.next().unwrap());
+                    let robby_spot_index = it.next()
+                        .unwrap()
+                        .parse::<usize>()
+                        .unwrap();
+                    let curr_spot_index = robby_spot_index + Board::get_home_row(&curr_color); // Added for Robby Translation
+                    let mut positions_copy = board.positions.clone();
+                    let mut pawn_locs = positions_copy
+                        .get_mut(&curr_color)
+                        .unwrap();
+                    pawn_locs[curr_id] = Loc::Spot { index: curr_spot_index };
+                    board
+                        .positions
+                        .insert(curr_color, pawn_locs.clone());
+                }
+                _ => break,
+            };
+        } else {
+            break;
+        }
+    }
     home = trim_xml(&home);
     let mut it = home.iter();
 
@@ -504,7 +538,7 @@ mod tests {
         assert!(Board::new() == deserialize_board(Board::new().xmlify()));
     }
 
-
+    #[test]
     /// Deserialize the board given to us on the website
     fn deserialize_board_real_test() {
         let test_board: Board = Board::from(map!{
@@ -518,17 +552,13 @@ mod tests {
     }
     
     #[test]
-    #[ignore]
     /// Parse real game board
     fn deserialize_board_basic_test() {
-        let board: Board = Board::from(map!{
-            Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
-        });
-        deserialize_board(board.xmlify());
+        let board: Board = Board::new();
+        let test_string = "<board> <start> <pawn> <color> yellow </color> <id> 3 </id> </pawn> <pawn> <color> yellow </color> <id> 2 </id> </pawn> <pawn> <color> yellow </color> <id> 1 </id> </pawn> <pawn> <color> yellow </color> <id> 0 </id> </pawn> <pawn> <color> red </color> <id> 3 </id> </pawn> <pawn> <color> red </color> <id> 2 </id> </pawn> <pawn> <color> red </color> <id> 1 </id> </pawn> <pawn> <color> red </color> <id> 0 </id> </pawn> <pawn> <color> green </color> <id> 3 </id> </pawn> <pawn> <color> green </color> <id> 2 </id> </pawn> <pawn> <color> green </color> <id> 1 </id> </pawn> <pawn> <color> green </color> <id> 0 </id> </pawn> <pawn> <color> blue </color> <id> 3 </id> </pawn> <pawn> <color> blue </color> <id> 2 </id> </pawn> <pawn> <color> blue </color> <id> 1 </id> </pawn> <pawn> <color> blue </color> <id> 0 </id> </pawn> </start> <main> </main> <home-rows> </home-rows> <home> </home> </board>".to_string();
+
         //assert!(false);
-        assert!(board ==
-                deserialize_board(board.xmlify() +
-                                  " <dice> <die> 3 </die> <die> 4 </die> </dice>"));
+        assert!(board == deserialize_board(test_string));
 
     }
 
@@ -540,14 +570,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn deserialize_do_move_test() {
-        let board: Board = Board::from(map!{
-            Color::Red => [Loc::Home, Loc::Spot { index: 103 }, Loc::Spot{ index: 30 }, Loc::Spot{ index: 29}]
-        });
+        let board: Board = Board::new();
         let dice: Dice = Dice { rolls: vec![1, 2] };
 
-        let expected: String = "<board> <start> <pawn> <color> Green </color> <id> 0 </id> </pawn> <pawn> <color> Green </color> <id> 1 </id> </pawn> <pawn> <color> Green </color> <id> 2 </id> </pawn> <pawn> <color> Green </color> <id> 3 </id> </pawn> <pawn> <color> Blue </color> <id> 0 </id> </pawn> <pawn> <color> Blue </color> <id> 1 </id> </pawn> <pawn> <color> Blue </color> <id> 2 </id> </pawn> <pawn> <color> Blue </color> <id> 3 </id> </pawn> <pawn> <color> Yellow </color> <id> 0 </id> </pawn> <pawn> <color> Yellow </color> <id> 1 </id> </pawn> <pawn> <color> Yellow </color> <id> 2 </id> </pawn> <pawn> <color> Yellow </color> <id> 3 </id> </pawn> </start> <main> <piece-loc> <pawn> <color> Red </color> <id> 2 </id> </pawn> <loc> 30 </loc> </piece-loc> <piece-loc> <pawn> <color> Red </color> <id> 3 </id> </pawn> <loc> 29 </loc> </piece-loc> </main> <home-rows> <piece-loc> <pawn> <color> Red </color> <id> 1 </id> </pawn> <loc> 103 </loc> </piece-loc> </home-rows> <home> <pawn> <color> Red </color> <id> 0 </id> </pawn> </home> </board>".to_string();
+        let expected: String = "<board> <start> <pawn> <color> yellow </color> <id> 3 </id> </pawn> <pawn> <color> yellow </color> <id> 2 </id> </pawn> <pawn> <color> yellow </color> <id> 1 </id> </pawn> <pawn> <color> yellow </color> <id> 0 </id> </pawn> <pawn> <color> red </color> <id> 3 </id> </pawn> <pawn> <color> red </color> <id> 2 </id> </pawn> <pawn> <color> red </color> <id> 1 </id> </pawn> <pawn> <color> red </color> <id> 0 </id> </pawn> <pawn> <color> green </color> <id> 3 </id> </pawn> <pawn> <color> green </color> <id> 2 </id> </pawn> <pawn> <color> green </color> <id> 1 </id> </pawn> <pawn> <color> green </color> <id> 0 </id> </pawn> <pawn> <color> blue </color> <id> 3 </id> </pawn> <pawn> <color> blue </color> <id> 2 </id> </pawn> <pawn> <color> blue </color> <id> 1 </id> </pawn> <pawn> <color> blue </color> <id> 0 </id> </pawn> </start> <main> </main> <home-rows> </home-rows> <home> </home> </board>".to_string();
         //assert!(deserialize_do_move(parse::xml_do_move(&board,&dice)) == (Board::new(),));
 
         assert!((board.clone(), dice.clone()) ==
