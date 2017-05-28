@@ -17,7 +17,8 @@ mod networkgame;
 
 use std::net::TcpStream;
 use networkplayer::NetworkPlayer;
-use board::Color;
+use board::{Board,Color};
+use dice::Dice;
 use player::Player;
 
 fn main() {
@@ -27,10 +28,16 @@ fn main() {
         name: "Lloyd".to_string(),
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
-    test_player.receive();
-    loop {
-        test_player.receive();
-    }
+    let dice: Dice = Dice {
+        rolls: vec![2,3],
+    };
+    let board: Board = Board::new();
+    let move_vec = test_player.do_move(board,dice);
+    println!("{:#?}", move_vec);
+    //test_player.receive();
+    //loop {
+    //    test_player.receive();
+   // }
     //let name: String = test_player.start_game();
     // Probably should change this just to be void
     //let color: String = test_player.receive();

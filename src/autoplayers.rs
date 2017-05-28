@@ -118,8 +118,8 @@ impl NetworkPlayer for XMLTestPlayer {
                 // before we proceed
                 println!("rec do move");
                 let (board,dice) =  deserialize::deserialize_do_move(response);
-                println!("Our made up board is {:#?}", board);
                 let moves_vec = self.do_move(board,dice); //TODO move the write to do_move?
+                println!("Our move vec {:#?}", moves_vec);
                 self.send(serialize::xml_moves(&moves_vec));
                 ()
             },
