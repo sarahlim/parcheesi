@@ -1,6 +1,6 @@
 use super::board::{Board, PawnLocs, Color, Pawn, Loc, MoveResult};
 use super::game::{Move, MoveType};
-use super::dice::Dice;
+use super::dice::{Dice, EntryMove};
 
 /// Given some board and dice, iterate over the possible
 /// next states, and yield the legal ones.
@@ -36,7 +36,37 @@ impl Iterator for GameTree {
     fn next(&mut self) -> Option<Move> {
         // We don't know how Rust implements generators, so we're using
         // an iterator and manually saving the state.
-        //
+
+        // Try entering.
+        let entry: EntryMove = self.dice.can_enter();
+        let entry_roll: Vec<usize> = match entry {
+            EntryMove::WithFive => vec![5],
+            EntryMove::WithSum(a, b) => vec![a, b], // (2)
+            EntryMove::NoEntry => vec![],
+        };
+
+        if !entry_roll.is_empty() {
+            // Get pawns.
+            for (i, &loc) in self.pawns
+                    .iter()
+                    .enumerate() {
+                if Loc::Nest == loc {
+                    // Schedule pawn to enter.
+                    let entry = Move {
+                        pawn: Pawn {
+                            id: i,
+                            color: self.color,
+                        },
+                        m_type: MoveType::EnterPiece,
+                    };
+
+                    return Some(entry);
+                    // TODO: Cache state for subsequent iterations.
+                }
+            }
+            let pawn_loc: Loc = self.pawns[self.current_pawn];
+        }
+
         // We iterate over pawns from [0, 4) and rolls from [0, rolls.size()).
         while self.current_pawn < 4 {
             while self.current_roll < self.dice.rolls.len() {
