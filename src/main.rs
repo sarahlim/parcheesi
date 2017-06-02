@@ -29,11 +29,11 @@ fn main() {
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
     let dice: Dice = Dice {
-        rolls: vec![2,3],
+        rolls: vec![5,5],
     };
     let board: Board = Board::new();
     let move_vec = test_player.do_move(board,dice);
-    println!("{:#?}", move_vec);
+    println!("My moves are {:#?}", move_vec);
     //test_player.receive();
     //loop {
     //    test_player.receive();
