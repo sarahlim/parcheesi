@@ -470,7 +470,7 @@ pub fn deserialize_dice(xml: String) -> Dice {
 
 pub fn deserialize_board(xml: String) -> Board {
     let mut vec_xml_string: Vec<String> = xml_board_to_vec_xml_string(xml);
-    println!("This is the board string: {:#?}", vec_xml_string);
+    //println!("This is the board string: {:#?}", vec_xml_string);
     //let mut board: Board = vec_string_to_board(vec_string);
     let board: Board = split_up_vec_xml_string(vec_xml_string);
     board

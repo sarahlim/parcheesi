@@ -43,15 +43,9 @@ impl Player for XMLTestPlayer {
                 match move_result {
                     Ok(MoveResult(next_board, bonus)) => {
                         temp_board = next_board;
-                        let mut move_vec = Vec::new();
                         match chosen_move.m_type {
                             MoveType::EnterPiece => {
                                 temp_dice = temp_dice.consume_entry_move();
-                                /*let temp_vec = self.do_move(temp_board.clone(),temp_dice.clone());
-                                println!("Our vector of temporary {:#?}",temp_vec);
-                                for i in temp_vec {
-                                    move_vec.push(i);
-                                }*/
                             }
                             MoveType::MoveMain { distance, .. } |
                             MoveType::MoveHome { distance, .. } => {
@@ -66,11 +60,6 @@ impl Player for XMLTestPlayer {
 
                         // Add the move to the vector.
                         moves.push(chosen_move);
-                        if !move_vec.is_empty() {
-                            for i in move_vec {
-                                moves.push(i);
-                            }
-                        }
                     }
                     Err(_) => unreachable!(),
                 };
@@ -237,6 +226,8 @@ fn move_last_pawn_player(name: String, color: Color) -> MoveEndPawnPlayer {
 mod test {
     use super::*;
 
+
+    
     #[test]
     fn do_move_basic() {
         let test_player = move_first_pawn_player("Test".to_string(),
@@ -575,4 +566,33 @@ mod test {
                     .do_move(test_board, test_dice)
                     .pop() == None);
     }
+
+    #[test]
+    fn do_move_into_blockade() {
+        let test_player: XMLTestPlayer = XMLTestPlayer {
+            color: Color::Red,
+            name: String::from("Moses"),
+            stream: TcpStream::connect("172.217.6.110:80").expect("Could not connect"),
+        };
+        let test_dice: Dice = Dice {
+            rolls: vec![5],
+        };
+        let test_board: Board = Board::from(map!{
+            test_player.color => [Loc::Spot { index: Board::get_entrance(&test_player.color) },
+                           Loc::Spot { index: Board::get_entrance(&test_player.color) },
+                           Loc::Nest,
+                                  Loc::Nest,],
+            Color::Yellow => [Loc::Spot { index: Board::get_entrance(&Color::Red)+5 },
+                              Loc::Spot { index: Board::get_entrance(&Color::Red)+5 },
+                               Loc::Nest,
+                              Loc::Nest,]
+        });
+                              
+            
+        let move_vector = test_player.do_move(test_board,test_dice);
+        println!("The vector of moves is {:#?}",move_vector);
+        assert!(move_vector == vec![]);
+                           
+    }
 }
+ 
