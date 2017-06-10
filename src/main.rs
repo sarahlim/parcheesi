@@ -28,16 +28,10 @@ fn main() {
         name: "Lloyd".to_string(),
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
-    let dice: Dice = Dice {
-        rolls: vec![5,5],
-    };
-    let board: Board = Board::new();
-    let move_vec = test_player.do_move(board,dice);
-    println!("My moves are {:#?}", move_vec);
-    //test_player.receive();
-    //loop {
-    //    test_player.receive();
-   // }
+    test_player.receive();
+    loop {
+        test_player.receive();
+    }
     //let name: String = test_player.start_game();
     // Probably should change this just to be void
     //let color: String = test_player.receive();

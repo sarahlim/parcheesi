@@ -142,7 +142,7 @@ impl Pawn {
 
     pub fn xmlify(&self) -> String {
         let xml_response =
-            "<pawn> <color> ".to_string() + &self.color.to_string() +
+            "<pawn> <color> ".to_string() + &self.color.to_string().to_lowercase() +
             " </color> <id> " + &self.id.to_string() +
             " </id> </pawn>";
         xml_response

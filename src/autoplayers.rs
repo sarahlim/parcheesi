@@ -90,6 +90,7 @@ impl NetworkPlayer for XMLTestPlayer {
     }
 
     fn send(&self, mut msg: String) -> () {
+        println!("We send {}\n", msg);
         let mut writer = BufWriter::new(&self.stream);
         msg.push_str("\n");
         writer
