@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use std;
 use std::fmt;
 use std::collections::BTreeMap;
@@ -255,17 +254,12 @@ impl Board {
         Ok(result)
     }
 
-    /// Determines whether the turn resulting in the given board is valid
-    /// with respect to the current board.
-    pub fn is_valid_turn(&self,
+    /// Determines blockades were moved together.
+    pub fn is_valid_turn (&self, 
                          end: &Board,
                          dice: &Dice,
                          color: Color)
                          -> bool {
-        // Check no valid moves remaining.
-        if Board::has_valid_moves(end, dice, &color) {
-            return false;
-        }
         // Can't move blockades together.
         let pawns: PawnLocs = self.get_pawns_by_color(&color);
         let blockades: Vec<Loc> = self.get_blockades();
@@ -386,6 +380,9 @@ impl Board {
     /// Determines whether the given board, dice, and color has any valid moves left.
     /// TODO: Does this preserve legality within turns?
     pub fn has_valid_moves(board: &Board, dice: &Dice, color: &Color) -> bool {
+        // Check 
+
+        
         if dice.all_used() {
             return false;
         }
@@ -569,10 +566,12 @@ impl Board {
             let mut blockades: Vec<Loc> = Vec::new();
             let mut seen: Vec<Loc> = Vec::new();
             for loc in locs.iter() {
-                if seen.contains(loc) {
-                    blockades.push(*loc);
-                } else {
-                    seen.push(*loc);
+                if *loc != Loc::Nest && *loc != Loc::Home {
+                    if seen.contains(loc) {
+                        blockades.push(*loc);
+                    } else {
+                        seen.push(*loc);
+                    }
                 }
             }
             blockades

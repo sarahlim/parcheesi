@@ -43,10 +43,15 @@ impl Player for XMLTestPlayer {
                 match move_result {
                     Ok(MoveResult(next_board, bonus)) => {
                         temp_board = next_board;
-
+                        let mut move_vec = Vec::new();
                         match chosen_move.m_type {
                             MoveType::EnterPiece => {
                                 temp_dice = temp_dice.consume_entry_move();
+                                /*let temp_vec = self.do_move(temp_board.clone(),temp_dice.clone());
+                                println!("Our vector of temporary {:#?}",temp_vec);
+                                for i in temp_vec {
+                                    move_vec.push(i);
+                                }*/
                             }
                             MoveType::MoveMain { distance, .. } |
                             MoveType::MoveHome { distance, .. } => {
@@ -61,6 +66,11 @@ impl Player for XMLTestPlayer {
 
                         // Add the move to the vector.
                         moves.push(chosen_move);
+                        if !move_vec.is_empty() {
+                            for i in move_vec {
+                                moves.push(i);
+                            }
+                        }
                     }
                     Err(_) => unreachable!(),
                 };

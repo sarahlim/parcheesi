@@ -28,6 +28,15 @@ fn main() {
         name: "Lloyd".to_string(),
         stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
     };
+    // TODO make the test_player able to take in moves
+    // Add GUI thing
+   /* let dice: Dice = Dice {
+        rolls: vec![3,5]
+    };
+    let board: Board = Board::new();
+    let moves = test_player.do_move(board,dice);
+    println!("{:#?}",moves);
+    */
     test_player.receive();
     loop {
         test_player.receive();

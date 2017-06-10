@@ -252,13 +252,13 @@ impl Move {
             }
             MoveType::MoveMain { start, distance } => {
                 "<move-piece-main> ".to_string() + &self.pawn.xmlify() +
-                &xmlify_start(start) +
+                &xmlify_start((start+18)%68) +
                 &xmlify_distance(distance) +
                 " </move-piece-main>"
             }
             MoveType::MoveHome { start, distance } => {
                 "<move-piece-home> ".to_string() + &self.pawn.xmlify() +
-                &xmlify_start(start) +
+                &xmlify_start(start % 100) +
                 &xmlify_distance(distance) +
                 " </move-piece-home>"
             }
