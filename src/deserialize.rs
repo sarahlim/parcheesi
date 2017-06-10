@@ -21,7 +21,6 @@ pub enum XmlMessage {
     DoMove,
     DoublesPenalty,
     Error,
-        
 }
 
 /// This function will decide which deserialization functino gets called given an xml string
@@ -33,17 +32,19 @@ pub fn deserialize_decision(request: String) -> XmlMessage {
         match reader.read_event(&mut buf) {
             Ok(Event::Start(ref e)) => {
                 match e.name() {
-                    b"start-game" => {return XmlMessage::StartGame},
-                    b"do-move" => {return XmlMessage::DoMove},
-                    b"doubles-penalty" => {return XmlMessage::DoublesPenalty},
-                    _ => {panic!("PANIK WITH {:#?}", e.name());
-                    return XmlMessage::Error},
-                } 
-            },
-            _ => {return XmlMessage::Error},
+                    b"start-game" => return XmlMessage::StartGame,
+                    b"do-move" => return XmlMessage::DoMove,
+                    b"doubles-penalty" => return XmlMessage::DoublesPenalty,
+                    _ => {
+                        panic!("PANIK WITH {:#?}", e.name());
+                        return XmlMessage::Error;
+                    }
+                }
+            }
+            _ => return XmlMessage::Error,
         }
     }
-                
+
 
 }
 
@@ -223,7 +224,9 @@ pub fn vec_string_to_vec_move(vec_string: Vec<String>) -> Vec<Move> {
 }
 
 pub fn string_to_color(string: String) -> Color {
-    match string.to_lowercase().as_ref() {
+    match string
+              .to_lowercase()
+              .as_ref() {
         "red" => Color::Red,
         "blue" => Color::Blue,
         "yellow" => Color::Yellow,
@@ -298,7 +301,7 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
 
     // TODO, Robby's board handles things differently than our boards.
     // For main row stuff, when we get his index, we must add 50 and % 68 to get to our representation
-    // For Homerows, we must add the color's homerow offset (i.e. 100,200,300 or 400). 
+    // For Homerows, we must add the color's homerow offset (i.e. 100,200,300 or 400).
     let mut it = main.iter();
     it.next();
     loop {
@@ -350,7 +353,8 @@ pub fn split_up_vec_xml_string(vec_xml_string: Vec<String>) -> Board {
                         .unwrap()
                         .parse::<usize>()
                         .unwrap();
-                    let curr_spot_index = robby_spot_index + Board::get_home_row(&curr_color); // Added for Robby Translation
+                    let curr_spot_index = robby_spot_index +
+                                          Board::get_home_row(&curr_color); // Added for Robby Translation
                     let mut positions_copy = board.positions.clone();
                     let mut pawn_locs = positions_copy
                         .get_mut(&curr_color)
@@ -451,17 +455,17 @@ pub fn deserialize_dice(xml: String) -> Dice {
             }
             Ok(Event::Text(e)) => {
                 if dice_p {
-                    txt.push(e.unescape_and_decode(&reader).unwrap());
+                    txt.push(e.unescape_and_decode(&reader)
+                                 .unwrap());
                 }
-            },
+            }
             Ok(Event::Eof) => break,
             Err(e) => panic!("Dice Parse Error {}", e),
             _ => (),
         }
         buf.clear()
     }
-    let usize_vector: Vec<usize> = txt
-        .iter()
+    let usize_vector: Vec<usize> = txt.iter()
         .map(|s| s.parse::<usize>().unwrap())
         .collect();
     let dice: Dice = Dice { rolls: usize_vector };
@@ -524,9 +528,10 @@ mod tests {
         let doubles_penalty: String = "<doubles-penalty egal".to_string();
         assert!(XmlMessage::StartGame == deserialize_decision(start_response));
         assert!(XmlMessage::DoMove == deserialize_decision(do_move));
-        assert!(XmlMessage::DoublesPenalty == deserialize_decision(doubles_penalty));
+        assert!(XmlMessage::DoublesPenalty ==
+                deserialize_decision(doubles_penalty));
         //assert!(XmlMessage::Error == deserialize_decision("<not> a tag".to_string()));
-        
+
     }
 
     #[test]
@@ -584,7 +589,7 @@ mod tests {
         let test_response: String = "<board> <start> <pawn> <color> yellow </color> <id> 3 </id> </pawn> <pawn> <color> red </color> <id> 2 </id> </pawn> <pawn> <color> green </color> <id> 1 </id> </pawn> <pawn> <color> blue </color> <id> 0 </id> </pawn> </start> <main> <piece-loc> <pawn> <color> yellow </color> <id> 2 </id> </pawn> <loc> 56 </loc> </piece-loc> <piece-loc> <pawn> <color> blue </color> <id> 3 </id> </pawn> <loc> 39 </loc> </piece-loc> <piece-loc> <pawn> <color> red </color> <id> 1 </id> </pawn> <loc> 22 </loc> </piece-loc> <piece-loc> <pawn> <color> green </color> <id> 0 </id> </pawn> <loc> 5 </loc> </piece-loc> </main> <home-rows> <piece-loc> <pawn> <color> green </color> <id> 2 </id> </pawn> <loc> 0 </loc> </piece-loc> <piece-loc> <pawn> <color> red </color> <id> 3 </id> </pawn> <loc> 1 </loc> </piece-loc> <piece-loc> <pawn> <color> blue </color> <id> 1 </id> </pawn> <loc> 2 </loc> </piece-loc> <piece-loc> <pawn> <color> yellow </color> <id> 0 </id> </pawn> <loc> 3 </loc> </piece-loc> </home-rows> <home> <pawn> <color> yellow </color> <id> 1 </id> </pawn> <pawn> <color> red </color> <id> 0 </id> </pawn> <pawn> <color> green </color> <id> 3 </id> </pawn> <pawn> <color> blue </color> <id> 2 </id> </pawn> </home> </board>".to_string();
         assert!(test_board == deserialize_board(test_response));
     }
-    
+
     #[test]
     /// Parse real game board
     fn deserialize_board_basic_test() {
@@ -605,8 +610,8 @@ mod tests {
     #[test]
     fn deserialize_do_move_test1() {
         let result: String = "<do-move><board><start><pawn><color>yellow</color><id>3</id></pawn><pawn><color>yellow</color><id>2</id></pawn><pawn><color>yellow</color><id>1</id></pawn><pawn><color>yellow</color><id>0</id></pawn><pawn><color>red</color><id>3</id></pawn><pawn><color>red</color><id>2</id></pawn><pawn><color>red</color><id>1</id></pawn><pawn><color>red</color><id>0</id></pawn><pawn><color>green</color><id>3</id></pawn><pawn><color>green</color><id>2</id></pawn><pawn><color>green</color><id>1</id></pawn><pawn><color>green</color><id>0</id></pawn><pawn><color>blue</color><id>3</id></pawn><pawn><color>blue</color><id>2</id></pawn><pawn><color>blue</color><id>1</id></pawn><pawn><color>blue</color><id>0</id></pawn></start><main></main><home-rows></home-rows><home></home></board><dice><die>2</die><die>3</die></dice></do-move>".to_string();
-        let (board,dice) = deserialize_do_move(result);
-        let test_dice: Dice = Dice { rolls: vec![2,3] };
+        let (board, dice) = deserialize_do_move(result);
+        let test_dice: Dice = Dice { rolls: vec![2, 3] };
         let test_board: Board = Board::new();
         assert!(test_dice == dice);
         assert!(test_board == board);

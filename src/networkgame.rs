@@ -12,9 +12,8 @@ pub fn start_server() {
         println!("Client Connected");
 
         let mut writer = BufWriter::new(&stream);
-        writer
-            .write_all("Red\n".as_bytes());
-            
+        writer.write_all("Red\n".as_bytes());
+
 
         writer
             .flush()

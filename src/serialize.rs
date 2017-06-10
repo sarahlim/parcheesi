@@ -2,7 +2,7 @@
 
 
 use std::collections::BTreeMap;
-use std::net::{TcpStream,Shutdown};
+use std::net::{TcpStream, Shutdown};
 use super::player::Player;
 use super::autoplayers::XMLTestPlayer;
 use super::dice::Dice;
@@ -78,8 +78,12 @@ mod test {
             name: "Sven".to_string(),
             stream: TcpStream::connect("172.217.6.110:80").expect("Player could not connect"),
         };
-        assert!(xml_start_game_response(&test_player) == "<name> Sven </name>".to_string());
-        test_player.stream.shutdown(Shutdown::Both).expect("Shutdown call failed");
+        assert!(xml_start_game_response(&test_player) ==
+                "<name> Sven </name>".to_string());
+        test_player
+            .stream
+            .shutdown(Shutdown::Both)
+            .expect("Shutdown call failed");
     }
 
     #[test]

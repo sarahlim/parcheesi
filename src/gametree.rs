@@ -49,23 +49,31 @@ impl Iterator for GameTree {
             // Get pawns.
             for (i, &loc) in self.pawns
                     .iter()
-                .enumerate() {
-                    if Loc::Nest == loc && !(self.board.get_blockades().iter().any(|&x| x == Loc::Spot {
-                        index: Board::get_entrance(&self.color),
-                    })) //Wonky closure to make sure we aren't going into our entrance that contains a blockade 
-                    {
-                        // Schedule pawn to enter.
-                        let entry = Move {
-                            pawn: Pawn {
-                                id: i,
-                                color: self.color,
-                            },
-                            m_type: MoveType::EnterPiece,
-                        };
+                    .enumerate() {
+                if Loc::Nest == loc &&
+                   !(self.board
+                         .get_blockades()
+                         .iter()
+                         .any(|&x| {
+                                  x ==
+                                  Loc::Spot {
+                                      index: Board::get_entrance(&self.color),
+                                  }
+                              }))
+                //Wonky closure to make sure we aren't going into our entrance that contains a blockade
+                {
+                    // Schedule pawn to enter.
+                    let entry = Move {
+                        pawn: Pawn {
+                            id: i,
+                            color: self.color,
+                        },
+                        m_type: MoveType::EnterPiece,
+                    };
 
-                        return Some(entry);
-                        // TODO: Cache state for subsequent iterations.
-                    }
+                    return Some(entry);
+                    // TODO: Cache state for subsequent iterations.
+                }
             }
             let pawn_loc: Loc = self.pawns[self.current_pawn];
         }

@@ -15,6 +15,6 @@ pub trait Player {
     /// Inform the player that they have suffered a doubles
     /// penalty.
     fn doubles_penalty(&self) -> () {
-        println!("Penalty on me")
+        println!("Penalty on me");
     }
 }

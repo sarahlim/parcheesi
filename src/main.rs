@@ -17,17 +17,16 @@ mod networkgame;
 
 use std::net::TcpStream;
 use networkplayer::NetworkPlayer;
-use board::{Board,Color};
+use board::{Board, Color, Loc};
 use dice::Dice;
 use player::Player;
 
 fn main() {
     println!("Hello, world!");
     let mut test_player = autoplayers::XMLTestPlayer {
-        color: Color::Blue, //This is meaningless
+        color: Color::Red, //This is meaningless
         name: "Lloyd".to_string(),
-        stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),
-    };
+        stream: TcpStream::connect("127.0.0.1:8000").expect("Could not connect to the server"),    };
     // TODO make the test_player able to take in moves
     // Add GUI thing
    /* let dice: Dice = Dice {
@@ -36,6 +35,22 @@ fn main() {
     let board: Board = Board::new();
     let moves = test_player.do_move(board,dice);
     println!("{:#?}",moves);
+     
+    let test_dice: Dice = Dice {
+            rolls: vec![5],
+        };
+    let test_board: Board = Board::from(map!{
+            test_player.color => [Loc::Spot { index: Board::get_entrance(&test_player.color) },
+                           Loc::Spot { index: Board::get_entrance(&test_player.color) },
+                           Loc::Nest,
+                                  Loc::Nest,],
+            Color::Yellow => [Loc::Spot { index: Board::get_entrance(&Color::Red)+5 },
+                              Loc::Spot { index: Board::get_entrance(&Color::Red)+5 },
+                               Loc::Nest,
+                              Loc::Nest,]
+        });
+    let move_vector = test_player.do_move(test_board,test_dice);
+    println!("{:#?}", move_vector);
     */
     test_player.receive();
     loop {
@@ -51,7 +66,7 @@ fn main() {
     //test_player.send("<name>Yo YO yo it is I </name>\n".to_string());
     //println!("Do we get here");
     //loop {
-      //  let moves = test_player.receive();
-      //  println!("Player received: {}", moves);
+    //  let moves = test_player.receive();
+    //  println!("Player received: {}", moves);
     //}
 }

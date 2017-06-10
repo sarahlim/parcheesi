@@ -141,9 +141,11 @@ impl Pawn {
 
     pub fn xmlify(&self) -> String {
         let xml_response =
-            "<pawn> <color> ".to_string() + &self.color.to_string().to_lowercase() +
-            " </color> <id> " + &self.id.to_string() +
-            " </id> </pawn>";
+            "<pawn> <color> ".to_string() +
+            &self.color
+                 .to_string()
+                 .to_lowercase() + " </color> <id> " +
+            &self.id.to_string() + " </id> </pawn>";
         xml_response
     }
 }
@@ -255,7 +257,7 @@ impl Board {
     }
 
     /// Determines blockades were moved together.
-    pub fn is_valid_turn (&self, 
+    pub fn is_valid_turn(&self,
                          end: &Board,
                          dice: &Dice,
                          color: Color)
@@ -264,26 +266,33 @@ impl Board {
         let pawns: PawnLocs = self.get_pawns_by_color(&color);
         let blockades: Vec<Loc> = self.get_blockades();
 
+        // println!("Our blockades {:#?}", blockades);
         for &blockade_loc in blockades.iter() {
+            // TODO: In a perfect world we would only go through our blockades
             // Get the ids of the pawns that formed the blockade
             // at this location.
-            let blockade_pawn_ids = pawns
+            // println!("Our blockades are at {:#?}", blockade_loc);
+            let blockade_pawn_ids = pawns // TODO: We only care about moving our blockade together
                 .iter()
                 .cloned()
                 .enumerate()
                 .filter(|&(_, loc)| loc == blockade_loc)
                 .collect::<Vec<(usize, Loc)>>();
-
+            if blockade_pawn_ids.is_empty() {
+                break; //Monkey patch. If the blockade isn't our we dont give a darn
+            }
+            // println!("WE GET HERE. Blockade pawn ids are {:#?}\n",blockade_pawn_ids);
             // If the new locations of the pawns are the same,
             // the turn is invalid.
-            let new_loc_1 = end.get_pawn_loc(&color, blockade_pawn_ids[0].0);
+            let new_loc_1 = end.get_pawn_loc(&color, blockade_pawn_ids[0].0); //This is the bitch
+            // println!("WE GET HERE PART I.5");
             let new_loc_2 = end.get_pawn_loc(&color, blockade_pawn_ids[1].0);
-
+            //println!("WE GET HERE PART II");
             if new_loc_1 == new_loc_2 {
                 return false;
             }
         }
-
+        // println!("WE returN");
         // If we got through all of the pawns and there aren't any
         // blockades moved together, the turn is valid.
         true
@@ -380,9 +389,9 @@ impl Board {
     /// Determines whether the given board, dice, and color has any valid moves left.
     /// TODO: Does this preserve legality within turns?
     pub fn has_valid_moves(board: &Board, dice: &Dice, color: &Color) -> bool {
-        // Check 
+        // Check
 
-        
+
         if dice.all_used() {
             return false;
         }
@@ -704,7 +713,7 @@ impl Board {
             // pawns occupying the destination spot.
             if !occupants.is_empty() {
                 // Should be exactly one occupant.
-                assert_eq!(occupants.len(), 1);
+                assert_eq!(occupants.len(), 1); // we fail
 
                 let (id, _) = occupants.pop().unwrap();
                 let bopped = Pawn { id: id, color: *c };
