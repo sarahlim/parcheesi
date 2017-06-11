@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use super::game::{Move, MoveType};
 use super::constants::*;
 use super::dice::{Dice, EntryMove};
+use super::deserialize;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// Represents the location of a pawn.
@@ -557,11 +558,8 @@ impl Board {
                                                                 start_loc)
                             .take(distance)
                             .collect();
-                    let next_loc: Loc = match move_path.pop() {
-                        Some(loc) => loc,
-                        None => panic!("Couldn't get move end"),
-                    };
-                    if move_path.len() < distance && next_loc == Loc::Home {
+                    if move_path.len() < distance &&
+                       move_path[move_path.len() - 1] == Loc::Home {
                         return false;
                     }
                 } else {
@@ -744,7 +742,7 @@ impl Board {
         let has_blockade = |l: Loc| blockades.contains(&l);
 
         for (c, locs) in self.positions.iter() {
-            if *c == bopper_color  {
+            if *c == bopper_color {
                 continue;
             }
 
@@ -753,14 +751,17 @@ impl Board {
             let mut occupants: Vec<(usize, Loc)> = locs.iter()
                 .cloned()
                 .enumerate()
-                .filter(|&(_, loc)| is_dest(loc) && !has_blockade(loc) && loc != Loc::Home)
+                .filter(|&(_, loc)| {
+                            is_dest(loc) && !has_blockade(loc) &&
+                            loc != Loc::Home
+                        })
                 .collect();
 
             // Now `occupants` is a vector of the current opponent's
             // pawns occupying the destination spot.
             //if !occupants.is_empty() {
-                // Should be exactly one occupant.
-              //  assert_eq!(occupants.len(), 1); // we fail
+            // Should be exactly one occupant.
+            //  assert_eq!(occupants.len(), 1); // we fail
             if occupants.len() == 1 && occupants[0].1 != Loc::Home {
                 let (id, _) = occupants.pop().unwrap();
                 let bopped = Pawn { id: id, color: *c };
@@ -1280,6 +1281,44 @@ mod tests {
         for tm in tests.iter() {
             tm.next();
         }
+    }
+
+    #[test]
+    fn bop_bonus_enter() {
+        let response = "<do-move><board><start><pawn><color>yellow</color><id>1</id></pawn><pawn><color>green</color><id>2</id></pawn></start><main><piece-loc><pawn><color>yellow</color><id>0</id></pawn><loc>63</loc></piece-loc><piece-loc><pawn><color>blue</color><id>3</id></pawn><loc>60</loc></piece-loc><piece-loc><pawn><color>red</color><id>3</id></pawn><loc>5</loc></piece-loc><piece-loc><pawn><color>blue</color><id>0</id></pawn><loc>54</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>3</id></pawn><loc>10</loc></piece-loc><piece-loc><pawn><color>green</color><id>1</id></pawn><loc>9</loc></piece-loc></main><home-rows><piece-loc><pawn><color>green</color><id>0</id></pawn><loc>3</loc></piece-loc><piece-loc><pawn><color>blue</color><id>1</id></pawn><loc>5</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>2</id></pawn><loc>6</loc></piece-loc></home-rows><home><pawn><color>red</color><id>2</id></pawn><pawn><color>red</color><id>1</id></pawn><pawn><color>red</color><id>0</id></pawn><pawn><color>green</color><id>3</id></pawn><pawn><color>blue</color><id>2</id></pawn></home></board><dice><die>20</die></dice></do-move>";
+        let (board, dice) =
+            deserialize::deserialize_do_move(response.to_string());
+        let color = Color::Red;
+
+        println!("jet fuel can't melt steel beams");
+
+        // assert!(Board::is_valid_move(&board,
+        //                              &dice,
+        //                              &Move {
+        //                                   m_type: MoveType::MoveMain {
+        //                                       start: 55,
+        //                                       distance: 20,
+        //                                   },
+        //                                   pawn: Pawn {
+        //                                       id: 3,
+        //                                       color: Color::Red,
+        //                                   },
+        //                               }));
+
+        let start_loc: Loc = Loc::Spot { index: 55 };
+        let mut move_path: Vec<Loc> = Path::started(color, start_loc)
+            .take(20)
+            .collect();
+        // println!("Move path: {:?}", move_path);
+        let next_loc: Loc = match move_path.pop() {
+            Some(loc) => loc,
+            None => panic!("Couldn't get move end"),
+        };
+        if move_path.len() < 20 && next_loc == Loc::Home {
+            println!("{:?}", move_path.len());
+            println!("FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUCK");
+        }
+        assert!(false);
     }
 
     #[test]
