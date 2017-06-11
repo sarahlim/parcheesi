@@ -7,7 +7,7 @@ use super::dice::{Dice, EntryMove};
 
 /// TODO: Currently Board has a method called has_valid_moves,
 /// which needs to be ported here.
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct GameTree {
     color: Color,
     board: Board,
@@ -92,7 +92,7 @@ impl Iterator for GameTree {
 
                 let m_type: MoveType = match pawn_loc {
                     Loc::Nest => MoveType::EnterPiece,
-                    Loc::Home => continue,
+                    Loc::Home => break, // this was continue
                     Loc::Spot { index } => {
                         if Board::is_home_row(self.color, pawn_loc) {
                             MoveType::MoveHome {
@@ -160,5 +160,27 @@ impl Iterator for GameTree {
         // If we've gone through all pairs of pawns and mini-moves,
         // there are no remaining valid moves.
         None
+    }
+}
+
+
+mod test {
+    use super::*;
+
+    #[test]
+    fn dumb_game_doesnt_bonus() {
+        let test_board = Board::from(map!{
+            Color::Green => [Loc::Spot { index: 55 },
+                             Loc::Spot { index: 55 },
+                             Loc::Spot { index: 406 },
+                             Loc::Spot { index: 7},]
+        });
+        let test_dice = Dice {
+            rolls: vec![10],
+        };
+        let mut test = GameTree::new(test_board, test_dice, Color::Green);
+        println!("{:#?}",test.clone());
+        println!("{:#?}",test.clone().next());
+        assert!(false);
     }
 }

@@ -77,6 +77,7 @@ impl Player for XMLTestPlayer {
                                     temp_dice.clone(),
                                     self.color);
         }
+        println!("WERKLJHASDLKJAHSDLJA {:#?}",moves);
         moves
     }
 

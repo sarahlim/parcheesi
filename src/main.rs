@@ -36,6 +36,7 @@ fn main() {
     };
     // TODO make the test_player able to take in moves
     // Add GUI thing
+    /*
     let test_dice: Dice = Dice { rolls: vec![3, 5] };
     let test_board: Board = Board::from(map!{
             Color::Red => [Loc::Spot { index: Board::get_entrance(&Color::Red)+1 },
@@ -45,6 +46,7 @@ fn main() {
         });
     let move_vector = test_player.do_move(test_board, test_dice);
     println!("Moves that we have {:#?}", move_vector);
+*/
     test_player.receive();
     loop {
         test_player.receive();

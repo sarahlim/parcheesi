@@ -699,7 +699,7 @@ impl Board {
         let has_blockade = |l: Loc| blockades.contains(&l);
 
         for (c, locs) in self.positions.iter() {
-            if *c == bopper_color {
+            if *c == bopper_color  {
                 continue;
             }
 
@@ -708,7 +708,7 @@ impl Board {
             let mut occupants: Vec<(usize, Loc)> = locs.iter()
                 .cloned()
                 .enumerate()
-                .filter(|&(_, loc)| is_dest(loc) && !has_blockade(loc))
+                .filter(|&(_, loc)| is_dest(loc) && !has_blockade(loc) && loc != Loc::Home)
                 .collect();
 
             // Now `occupants` is a vector of the current opponent's
@@ -716,7 +716,7 @@ impl Board {
             //if !occupants.is_empty() {
                 // Should be exactly one occupant.
               //  assert_eq!(occupants.len(), 1); // we fail
-            if occupants.len() == 1 {
+            if occupants.len() == 1 && occupants[0].1 != Loc::Home {
                 let (id, _) = occupants.pop().unwrap();
                 let bopped = Pawn { id: id, color: *c };
 
