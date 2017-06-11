@@ -292,8 +292,9 @@ impl Board {
                 .enumerate()
                 .filter(|&(_, loc)| loc == blockade_loc)
                 .collect::<Vec<(usize, Loc)>>();
+
             if blockade_pawn_ids.is_empty() {
-                break; //Monkey patch. If the blockade isn't our we dont give a darn
+                continue;
             }
 
             // println!("WE GET HERE. Blockade pawn ids are {:#?}\n",blockade_pawn_ids);
