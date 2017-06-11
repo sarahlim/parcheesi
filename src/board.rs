@@ -499,9 +499,25 @@ impl Board {
                     return false;
                 }
                 // This will return false when the pawn attempts to bop on a safety square
-                if Board::is_safety(finish_loc) &&
-                   board.full_safety_square(finish_loc, color) {
-                    return false;
+                if Board::is_safety(finish_loc) {
+                    // board.full_safety_square(finish_loc, color) {
+                    for clr in [Color::Green,
+                                Color::Red,
+                                Color::Blue,
+                                Color::Yellow]
+                                .iter() {
+                        if *clr == color {
+                            continue;
+                        }
+
+                        for loc in board
+                                .get_pawns_by_color(&clr)
+                                .iter() {
+                            if *loc == finish_loc {
+                                return false;
+                            }
+                        }
+                    }
                 }
 
                 // Chosen move distance is a valid mini-move.
