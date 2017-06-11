@@ -537,9 +537,25 @@ impl Board {
                 }
 
                 // Make sure we don't overshoot home.
-                let home_row_entrance: usize = Board::get_home_row(&color);
-                if start + distance > home_row_entrance + HOME_ROW_LENGTH {
-                    return false;
+                if start < 100 {
+                    // Moving from main ring.
+                    let start_loc: Loc = Loc::Spot { index: start };
+                    let mut move_path: Vec<Loc> = Path::started(color,
+                                                                start_loc)
+                            .take(distance)
+                            .collect();
+                    let next_loc: Loc = match move_path.pop() {
+                        Some(loc) => loc,
+                        None => panic!("Couldn't get move end"),
+                    };
+                    if move_path.len() < distance && next_loc == Loc::Home {
+                        return false;
+                    }
+                } else {
+                    let home_row_entrance: usize = Board::get_home_row(&color);
+                    if start + distance > home_row_entrance + HOME_ROW_LENGTH {
+                        return false;
+                    }
                 }
 
                 true
