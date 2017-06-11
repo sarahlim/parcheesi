@@ -266,12 +266,12 @@ impl Board {
         let pawns: PawnLocs = self.get_pawns_by_color(&color);
         let blockades: Vec<Loc> = self.get_blockades();
 
-        // println!("Our blockades {:#?}", blockades);
+        //println!("Our blockades {:#?}", blockades);
         for &blockade_loc in blockades.iter() {
             // TODO: In a perfect world we would only go through our blockades
             // Get the ids of the pawns that formed the blockade
             // at this location.
-            // println!("Our blockades are at {:#?}", blockade_loc);
+            // println!("Our blockades are at {:#?}\n", blockade_loc);
             let blockade_pawn_ids = pawns // TODO: We only care about moving our blockade together
                 .iter()
                 .cloned()
@@ -281,6 +281,7 @@ impl Board {
             if blockade_pawn_ids.is_empty() {
                 break; //Monkey patch. If the blockade isn't our we dont give a darn
             }
+
             // println!("WE GET HERE. Blockade pawn ids are {:#?}\n",blockade_pawn_ids);
             // If the new locations of the pawns are the same,
             // the turn is invalid.
@@ -288,7 +289,8 @@ impl Board {
             // println!("WE GET HERE PART I.5");
             let new_loc_2 = end.get_pawn_loc(&color, blockade_pawn_ids[1].0);
             //println!("WE GET HERE PART II");
-            if new_loc_1 == new_loc_2 {
+            if new_loc_1 == new_loc_2 && new_loc_1 != blockade_pawn_ids[0].1 {
+                // this was returning falsely if the blockade doesn't move too
                 return false;
             }
         }

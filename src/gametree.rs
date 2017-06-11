@@ -137,6 +137,7 @@ impl Iterator for GameTree {
                 let is_valid_for_turn: bool = match move_result {
                     Ok(MoveResult(next_board, _)) => {
                         // Test mini move at the turn level.
+                        // println!("Current Board {:#?} Next Board {:#?}", self.board, next_board);
                         self.board
                             .is_valid_turn(&next_board, &self.dice, self.color)
                     }

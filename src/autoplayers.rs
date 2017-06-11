@@ -36,6 +36,7 @@ impl Player for XMLTestPlayer {
         // for now just take the first legal move.
         loop {
             if let Some(chosen_move) = options.next() {
+                println!("Our chosen move is {:#?}", chosen_move);
                 let move_result: Result<MoveResult,
                                         &'static str> =
                     temp_board.handle_move(chosen_move);
@@ -57,23 +58,24 @@ impl Player for XMLTestPlayer {
                         if let Some(amt) = bonus {
                             temp_dice = temp_dice.give_bonus(amt);
                         }
-
+                        //println!("we have a valid move for vector {:#?}",chosen_move);
                         // Add the move to the vector.
                         moves.push(chosen_move);
+
                     }
                     Err(_) => unreachable!(),
                 };
             } else {
                 // No more options for moves.
+                // println!("BREAK");
                 break;
             }
-
+            //println!("New Board, with dice, and color {:#?} {:#?} {}", temp_board.clone(), temp_dice.clone(), self.color);
             // Regenerate mini-moves given the new board.
             options = GameTree::new(temp_board.clone(),
                                     temp_dice.clone(),
                                     self.color);
         }
-
         moves
     }
 
@@ -121,7 +123,7 @@ impl NetworkPlayer for XMLTestPlayer {
                 println!("rec do move");
                 let (board, dice) = deserialize::deserialize_do_move(response);
                 let moves_vec = self.do_move(board, dice); //TODO move the write to do_move?
-                println!("Our move vec {:#?}", moves_vec);
+                // println!("Our move vec {:#?}", moves_vec);
                 self.send(serialize::xml_moves(&moves_vec));
                 ()
             }
