@@ -505,7 +505,14 @@ impl Board {
             MoveType::MoveMain { start, distance } |
             MoveType::MoveHome { start, distance } => {
                 let start_loc: Loc = Loc::Spot { index: start };
-                let finish_loc: Loc = Loc::Spot { index: start + distance };
+                let mut move_path: Vec<Loc> = Path::started(color, start_loc)
+                    .take(distance)
+                    .collect();
+
+                let finish_loc: Loc = match move_path.pop() {
+                    Some(loc) => loc,
+                    None => panic!("Couldn't get move end"),
+                };
 
                 // Pawn is currently at start location in the Main Ring.
                 let current_pawn_loc: Loc = board.get_pawn_loc(&color, id);
