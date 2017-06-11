@@ -300,13 +300,17 @@ impl Board {
             // println!("WE GET HERE. Blockade pawn ids are {:#?}\n",blockade_pawn_ids);
             // If the new locations of the pawns are the same,
             // the turn is invalid.
-            let new_loc_1 = end.get_pawn_loc(&color, blockade_pawn_ids[0].0); //This is the bitch
-            // println!("WE GET HERE PART I.5");
-            let new_loc_2 = end.get_pawn_loc(&color, blockade_pawn_ids[1].0);
-            //println!("WE GET HERE PART II");
-            if new_loc_1 == new_loc_2 && new_loc_1 != blockade_pawn_ids[0].1 {
-                // this was returning falsely if the blockade doesn't move too
-                return false;
+            let (old_id_1, old_loc_1) = blockade_pawn_ids[0];
+            let (old_id_2, _) = blockade_pawn_ids[1];
+            let new_loc_1 = end.get_pawn_loc(&color, old_id_1);
+            let new_loc_2 = end.get_pawn_loc(&color, old_id_2);
+            if new_loc_1 == new_loc_2 && new_loc_1 != old_loc_1 {
+                // Moving into home doesn't count as moving a blockade.
+                if new_loc_1 == Loc::Home {
+                    continue;
+                } else {
+                    return false;
+                }
             }
         }
         // println!("WE returN");
