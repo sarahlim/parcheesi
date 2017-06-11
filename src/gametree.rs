@@ -1,6 +1,7 @@
 use super::board::{Board, PawnLocs, Color, Pawn, Loc, MoveResult};
 use super::game::{Move, MoveType};
 use super::dice::{Dice, EntryMove};
+use super::deserialize;
 
 /// Given some board and dice, iterate over the possible
 /// next states, and yield the legal ones.
@@ -11,6 +12,7 @@ use super::dice::{Dice, EntryMove};
 pub struct GameTree {
     color: Color,
     board: Board,
+    original: Board,
     dice: Dice,
     pawns: PawnLocs,
     current_pawn: usize,
@@ -22,7 +24,24 @@ impl GameTree {
         GameTree {
             pawns: board.get_pawns_by_color(&color),
             color: color,
+            original: board.clone(),
             board: board,
+            dice: dice,
+            current_pawn: 0,
+            current_roll: 0,
+        }
+    }
+
+    pub fn from(board: Board,
+                dice: Dice,
+                color: Color,
+                original: Board)
+                -> GameTree {
+        GameTree {
+            pawns: board.get_pawns_by_color(&color),
+            color: color,
+            board: board,
+            original: original,
             dice: dice,
             current_pawn: 0,
             current_roll: 0,
@@ -34,6 +53,8 @@ impl Iterator for GameTree {
     type Item = Move;
 
     fn next(&mut self) -> Option<Move> {
+        println!("========GAMETREE NEXT=============");
+        println!("DICE: {:#?}", self.dice);
         // We don't know how Rust implements generators, so we're using
         // an iterator and manually saving the state.
 
@@ -129,7 +150,6 @@ impl Iterator for GameTree {
                 let is_valid_mini_move: bool =
                     Board::is_valid_move(&self.board, &self.dice, &mv);
 
-
                 let move_result: Result<MoveResult,
                                         &'static str> = temp_board
                     .handle_move(mv);
@@ -138,7 +158,7 @@ impl Iterator for GameTree {
                     Ok(MoveResult(next_board, _)) => {
                         // Test mini move at the turn level.
                         // println!("Current Board {:#?} Next Board {:#?}", self.board, next_board);
-                        self.board
+                        self.original
                             .is_valid_turn(&next_board, &self.dice, self.color)
                     }
                     Err(_) => false,
@@ -168,6 +188,42 @@ mod test {
     use super::*;
 
     #[test]
+    fn frick() {
+        let response = "<do-move><board><start><pawn><color>yellow</color><id>1</id></pawn><pawn><color>green</color><id>1</id></pawn><pawn><color>blue</color><id>3</id></pawn></start><main><piece-loc><pawn><color>green</color><id>2</id></pawn><loc>62</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>0</id></pawn><loc>60</loc></piece-loc><piece-loc><pawn><color>blue</color><id>1</id></pawn><loc>59</loc></piece-loc><piece-loc><pawn><color>red</color><id>1</id></pawn><loc>41</loc></piece-loc><piece-loc><pawn><color>red</color><id>3</id></pawn><loc>40</loc></piece-loc><piece-loc><pawn><color>blue</color><id>2</id></pawn><loc>39</loc></piece-loc><piece-loc><pawn><color>green</color><id>3</id></pawn><loc>36</loc></piece-loc><piece-loc><pawn><color>red</color><id>2</id></pawn><loc>28</loc></piece-loc><piece-loc><pawn><color>red</color><id>0</id></pawn><loc>22</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>2</id></pawn><loc>20</loc></piece-loc><piece-loc><pawn><color>blue</color><id>0</id></pawn><loc>10</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>3</id></pawn><loc>9</loc></piece-loc></main><home-rows></home-rows><home><pawn><color>green</color><id>0</id></pawn></home></board><dice><die>6</die><die>6</die></dice></do-move>";
+        let (board, dice) =
+            deserialize::deserialize_do_move(response.to_string());
+        let color = Color::Blue;
+        let gt = GameTree::new(board.clone(), dice, color);
+
+        println!("jet fuel can't melt steel beams");
+
+        for x in gt.take(1000) {
+            println!("{:?}", x);
+        }
+
+        for clr in [Color::Green, Color::Red, Color::Blue, Color::Yellow]
+                .iter() {
+            if *clr == color {
+                continue;
+            }
+
+            println!("Testing color {:?}", clr);
+
+            for (i, loc) in board
+                    .get_pawns_by_color(&clr)
+                    .iter()
+                    .enumerate() {
+                println!("    Pawn {:?} at location {:?}", i, loc);
+                let finish_loc = Loc::Spot { index: 4 };
+                if *loc == finish_loc {
+                    println!("FUUUUUUUUUUUCL");
+                }
+            }
+        }
+        assert!(false);
+    }
+
+    #[test]
     fn dumb_game_doesnt_bonus() {
         let test_board = Board::from(map!{
             Color::Green => [Loc::Spot { index: 55 },
@@ -175,12 +231,10 @@ mod test {
                              Loc::Spot { index: 406 },
                              Loc::Spot { index: 7},]
         });
-        let test_dice = Dice {
-            rolls: vec![10],
-        };
+        let test_dice = Dice { rolls: vec![10] };
         let mut test = GameTree::new(test_board, test_dice, Color::Green);
-        println!("{:#?}",test.clone());
-        println!("{:#?}",test.clone().next());
+        println!("{:#?}", test.clone());
+        println!("{:#?}", test.clone().next());
         assert!(false);
     }
 }

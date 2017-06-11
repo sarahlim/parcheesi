@@ -23,6 +23,7 @@ impl Player for XMLTestPlayer {
 
         // Create temporary copies of the board and dice,
         // so we can build up a sequence of moves.
+        let original_board: Board = board.clone();
         let mut temp_board: Board = board.clone();
         let mut temp_dice: Dice = dice.clone();
 
@@ -36,14 +37,14 @@ impl Player for XMLTestPlayer {
         // for now just take the first legal move.
         loop {
             if let Some(chosen_move) = options.next() {
-                println!("Our chosen move is {:#?}",chosen_move);
+                println!("Our chosen move is {:#?}", chosen_move);
                 let move_result: Result<MoveResult,
                                         &'static str> =
                     temp_board.handle_move(chosen_move);
 
                 match move_result {
                     Ok(MoveResult(next_board, bonus)) => {
-                        println!("BONUS BONUS {:#?}",bonus);
+                        println!("BONUS BONUS {:#?}", bonus);
                         temp_board = next_board;
                         match chosen_move.m_type {
                             MoveType::EnterPiece => {
@@ -62,26 +63,28 @@ impl Player for XMLTestPlayer {
                         //println!("we have a valid move for vector {:#?}",chosen_move);
                         // Add the move to the vector.
                         moves.push(chosen_move);
-                       
+
                     }
                     Err(_) => unreachable!(),
                 };
             } else {
                 // No more options for moves.
-               // println!("BREAK");
-               break;
+                // println!("BREAK");
+                break;
             }
-            println!("dice, {:#?}", temp_dice.clone());
             // Regenerate mini-moves given the new board.
-            options = GameTree::new(temp_board.clone(),
-                                    temp_dice.clone(),
-                                    self.color);
+            options = GameTree::from(temp_board.clone(),
+                                     temp_dice.clone(),
+                                     self.color,
+                                     original_board.clone());
         }
-        println!("WERKLJHASDLKJAHSDLJA {:#?}",moves);
+        println!("WERKLJHASDLKJAHSDLJA {:#?}\n{:#?}",
+                 moves,
+                 temp_dice.clone());
         moves
     }
 
-    fn start_game(&self) -> String {        
+    fn start_game(&self) -> String {
         self.send(serialize::xml_start_game_response(&self));
         self.name.to_string()
     }
@@ -111,25 +114,28 @@ impl NetworkPlayer for XMLTestPlayer {
             .read_line(&mut response)
             .expect("Player could not read");
         println!("Player received {}", response);
-        let decision: XmlMessage = deserialize::deserialize_decision(response.clone());
+        let decision: XmlMessage =
+            deserialize::deserialize_decision(response.clone());
         match decision {
             XmlMessage::StartGame => {
                 self.color = deserialize::deserialize_start_game(response);
                 self.start_game();
-                ()},
+                ()
+            }
             XmlMessage::DoMove => {
                 // The deserialize method will return a tuple with the board and the dice, so we must decompose that
                 // before we proceed
                 println!("rec do move");
-                let (board,dice) =  deserialize::deserialize_do_move(response);
-                let moves_vec = self.do_move(board,dice); //TODO move the write to do_move?
+                let (board, dice) = deserialize::deserialize_do_move(response);
+                let moves_vec = self.do_move(board, dice); //TODO move the write to do_move?
                 // println!("Our move vec {:#?}", moves_vec);
                 self.send(serialize::xml_moves(&moves_vec));
                 ()
-            },
+            }
             XmlMessage::DoublesPenalty => {
                 self.send("<void> </void>".to_string());
-                self.doubles_penalty()},
+                self.doubles_penalty()
+            }
             XmlMessage::Error => panic!("Could not parse message"),        
         };
     }
@@ -233,7 +239,7 @@ mod test {
     use super::*;
 
 
-    
+
     #[test]
     fn do_move_basic() {
         let test_player = move_first_pawn_player("Test".to_string(),
@@ -580,9 +586,7 @@ mod test {
             name: String::from("Moses"),
             stream: TcpStream::connect("172.217.6.110:80").expect("Could not connect"),
         };
-        let test_dice: Dice = Dice {
-            rolls: vec![5],
-        };
+        let test_dice: Dice = Dice { rolls: vec![5] };
         let test_board: Board = Board::from(map!{
             test_player.color => [Loc::Spot { index: Board::get_entrance(&test_player.color) },
                            Loc::Spot { index: Board::get_entrance(&test_player.color) },
@@ -593,11 +597,11 @@ mod test {
                                Loc::Nest,
                               Loc::Nest,]
         });
-                              
-            
-        let move_vector = test_player.do_move(test_board,test_dice);
-        println!("The vector of moves is {:#?}",move_vector);
-        assert!(move_vector == vec![]);                           
+
+
+        let move_vector = test_player.do_move(test_board, test_dice);
+        println!("The vector of moves is {:#?}", move_vector);
+        assert!(move_vector == vec![]);
     }
 
     #[test]
@@ -607,20 +611,17 @@ mod test {
             name: String::from("Moses"),
             stream: TcpStream::connect("172.217.6.110:80").expect("Could not connect"),
         };
-        let test_dice: Dice = Dice {
-            rolls: vec![3,5],
-        };
+        let test_dice: Dice = Dice { rolls: vec![3, 5] };
         let test_board: Board = Board::from(map!{
             test_player.color => [Loc::Spot { index: Board::get_entrance(&test_player.color)+1 },
                                   Loc::Spot { index: Board::get_entrance(&test_player.color)+1 },
                                   Loc::Spot { index: Board::get_entrance(&test_player.color) },
                                   Loc::Nest,]
         });
-                              
-            
-        let move_vector = test_player.do_move(test_board,test_dice);
-        println!("The vector of moves is {:#?}",move_vector);
-        assert!(move_vector.len() > 1);                           
+
+
+        let move_vector = test_player.do_move(test_board, test_dice);
+        println!("The vector of moves is {:#?}", move_vector);
+        assert!(move_vector.len() > 1);
     }
 }
- 

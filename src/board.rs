@@ -1292,38 +1292,31 @@ mod tests {
 
     #[test]
     fn bop_bonus_enter() {
-        let response = "<do-move><board><start><pawn><color>yellow</color><id>1</id></pawn><pawn><color>green</color><id>2</id></pawn></start><main><piece-loc><pawn><color>yellow</color><id>0</id></pawn><loc>63</loc></piece-loc><piece-loc><pawn><color>blue</color><id>3</id></pawn><loc>60</loc></piece-loc><piece-loc><pawn><color>red</color><id>3</id></pawn><loc>5</loc></piece-loc><piece-loc><pawn><color>blue</color><id>0</id></pawn><loc>54</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>3</id></pawn><loc>10</loc></piece-loc><piece-loc><pawn><color>green</color><id>1</id></pawn><loc>9</loc></piece-loc></main><home-rows><piece-loc><pawn><color>green</color><id>0</id></pawn><loc>3</loc></piece-loc><piece-loc><pawn><color>blue</color><id>1</id></pawn><loc>5</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>2</id></pawn><loc>6</loc></piece-loc></home-rows><home><pawn><color>red</color><id>2</id></pawn><pawn><color>red</color><id>1</id></pawn><pawn><color>red</color><id>0</id></pawn><pawn><color>green</color><id>3</id></pawn><pawn><color>blue</color><id>2</id></pawn></home></board><dice><die>20</die></dice></do-move>";
+        let response = "<do-move><board><start><pawn><color>yellow</color><id>1</id></pawn><pawn><color>green</color><id>1</id></pawn><pawn><color>blue</color><id>3</id></pawn></start><main><piece-loc><pawn><color>green</color><id>2</id></pawn><loc>62</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>0</id></pawn><loc>60</loc></piece-loc><piece-loc><pawn><color>blue</color><id>1</id></pawn><loc>59</loc></piece-loc><piece-loc><pawn><color>red</color><id>1</id></pawn><loc>41</loc></piece-loc><piece-loc><pawn><color>red</color><id>3</id></pawn><loc>40</loc></piece-loc><piece-loc><pawn><color>blue</color><id>2</id></pawn><loc>39</loc></piece-loc><piece-loc><pawn><color>green</color><id>3</id></pawn><loc>36</loc></piece-loc><piece-loc><pawn><color>red</color><id>2</id></pawn><loc>28</loc></piece-loc><piece-loc><pawn><color>red</color><id>0</id></pawn><loc>22</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>2</id></pawn><loc>20</loc></piece-loc><piece-loc><pawn><color>blue</color><id>0</id></pawn><loc>10</loc></piece-loc><piece-loc><pawn><color>yellow</color><id>3</id></pawn><loc>9</loc></piece-loc></main><home-rows></home-rows><home><pawn><color>green</color><id>0</id></pawn></home></board><dice><die>6</die><die>6</die></dice></do-move>";
         let (board, dice) =
             deserialize::deserialize_do_move(response.to_string());
-        let color = Color::Red;
+        let color = Color::Blue;
 
         println!("jet fuel can't melt steel beams");
 
-        // assert!(Board::is_valid_move(&board,
-        //                              &dice,
-        //                              &Move {
-        //                                   m_type: MoveType::MoveMain {
-        //                                       start: 55,
-        //                                       distance: 20,
-        //                                   },
-        //                                   pawn: Pawn {
-        //                                       id: 3,
-        //                                       color: Color::Red,
-        //                                   },
-        //                               }));
+        for clr in [Color::Green, Color::Red, Color::Blue, Color::Yellow]
+                .iter() {
+            if *clr == color {
+                continue;
+            }
 
-        let start_loc: Loc = Loc::Spot { index: 55 };
-        let mut move_path: Vec<Loc> = Path::started(color, start_loc)
-            .take(20)
-            .collect();
-        // println!("Move path: {:?}", move_path);
-        let next_loc: Loc = match move_path.pop() {
-            Some(loc) => loc,
-            None => panic!("Couldn't get move end"),
-        };
-        if move_path.len() < 20 && next_loc == Loc::Home {
-            println!("{:?}", move_path.len());
-            println!("FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUCK");
+            println!("Testing color {:?}", clr);
+
+            for (i, loc) in board
+                    .get_pawns_by_color(&clr)
+                    .iter()
+                    .enumerate() {
+                println!("    Pawn {:?} at location {:?}", i, loc);
+                let finish_loc = Loc::Spot { index: 4 };
+                if *loc == finish_loc {
+                    println!("FUUUUUUUUUUUCL");
+                }
+            }
         }
         assert!(false);
     }
