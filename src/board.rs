@@ -246,6 +246,19 @@ impl Board {
             }
         };
 
+        if let Some(bopped) = self.can_bop(color, next_loc) {
+            // If a bop occurs, we need to handle two side effects:
+            // 1. Move the bopped pawn back to the nest.
+            let bopped_pawn_locs: PawnLocs =
+                self.get_pawns_by_color(&bopped.color);
+            let mut next_bopped_pawns: PawnLocs = bopped_pawn_locs.clone();
+            next_bopped_pawns[bopped.id] = Loc::Nest;
+            next_positions.insert(bopped.color, next_bopped_pawns);
+
+            // 2. Award the bop bonus.
+            bonus = Some(BOP_BONUS);
+        }
+
         // Modify the copy of the position map with the next_position
         // of the moving player's pawns.
         next_pawns[id] = next_loc;
